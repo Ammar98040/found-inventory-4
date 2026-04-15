@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل منتج - {{ product.product_number }}</title>
+    {% load static %}
+    {% load l10n %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 30px;">
+            <h1>✏️ تعديل منتج</h1>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}" style="margin-bottom: 20px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-lg);">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="product_number">رقم المنتج *</label>
+                    <input type="text" id="product_number" name="product_number" required 
+                           value="{{ product.product_number }}">
+                    <small>رقم فريد للمنتج</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="name">اسم المنتج *</label>
+                    <input type="text" id="name" name="name" required 
+                           value="{{ product.name }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="price">السعر</label>
+                    <input type="number" id="price" name="price" step="0.01" min="0" 
+                           value="{{ formatted_price }}" placeholder="0.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">الوصف</label>
+                    <textarea id="description" name="description" rows="4">{{ product.description }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">الكمية</label>
+                    <input type="number" id="quantity" name="quantity" value="{{ product.quantity }}" min="0">
+                </div>
+
+
+
+                <div class="form-group">
+                    <label for="image">صورة المنتج</label>
+                    <div class="image-upload-zone" id="image-upload-zone" onclick="document.getElementById('image').click()">
+                        <div class="image-upload-icon">🖼️</div>
+                        <p class="image-upload-text">اسحب الصورة هنا أو انقر للاختيار</p>
+                        <p class="image-upload-hint">JPG, PNG, GIF</p>
+                    </div>
+                    <input type="file" id="image" name="image" accept="image/*" style="display: none;">
+                    
+                    {% if product.image %}
+                        <div style="margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                            <p style="margin-bottom: 10px; color: #64748b; font-weight: 600;">الصورة الحالية:</p>
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                 style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e2e8f0;">
+                            <div style="margin-top: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" name="delete_image" value="1">
+                                    <span style="color: #ef4444; font-size: 0.9rem;">🗑️ حذف الصورة الحالية</span>
+                                </label>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div id="image-preview" style="margin-top: 10px;"></div>
+                </div>
+
+                <div class="header-actions" style="margin-top: 30px;">
+                    <button type="submit" class="btn btn--sm btn--primary">
+                        <span class="icon">✓</span>
+                        <span>حفظ التغييرات</span>
+                    </button>
+                    <a href="/products/{{ product.id }}/" class="btn btn--sm btn--neutral">
+                        <span class="icon">←</span>
+                        <span>العودة</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .image-upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .image-upload-zone:hover {
+            border-color: var(--primary-color);
+            background: #f1f5f9;
+        }
+        .image-upload-zone.dragover {
+            border-color: var(--primary-color);
+            background: #eef2ff;
+        }
+        .image-upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .image-upload-text { font-weight: 600; color: var(--text-primary); margin: 0; }
+        .image-upload-hint { font-size: 0.85rem; color: var(--text-secondary); margin: 5px 0 0 0; }
+    </style>
+
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="/audit-logs/" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    <script src="{% static 'js/quick_search.js' %}"></script>
+
+    
+    <script>
+        function showImagePreview(file) {
+            const preview = document.getElementById('image-preview');
+            const input = document.getElementById('image');
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.innerHTML = `
+                    <div style="margin-top: 10px; padding: 15px; background: #ecfdf5; border-radius: 8px; border: 2px solid #10b981;">
+                        <p style="margin-bottom: 10px; color: #065f46; font-weight: 600;">✅ الصورة الجديدة (معاينة):</p>
+                        <img src="${e.target.result}" alt="معاينة" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #10b981;">
+                        <p style="margin-top: 10px; color: #064e3b; font-size: 0.9rem;">📁 ${file.name} (${(file.size / 1024).toFixed(2)} KB)</p>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+        document.getElementById('image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) showImagePreview(file);
+            else if (!file) document.getElementById('image-preview').innerHTML = '';
+        });
+        const zone = document.getElementById('image-upload-zone');
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) showImagePreview(file);
+        });
+    </script>
+</body>
+</html>

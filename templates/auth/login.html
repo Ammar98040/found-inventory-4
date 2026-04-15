@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - قلب العرب</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* خلفية متحركة */
+        .background-animation {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .floating-shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 20s infinite;
+        }
+        
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #fff 0%, transparent 70%);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .shape-2 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, #fff 0%, transparent 70%);
+            top: 60%;
+            right: 15%;
+            animation-delay: 5s;
+        }
+        
+        .shape-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #fff 0%, transparent 70%);
+            bottom: 15%;
+            left: 20%;
+            animation-delay: 10s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            25% {
+                transform: translate(30px, -30px) rotate(90deg);
+            }
+            50% {
+                transform: translate(-20px, 20px) rotate(180deg);
+            }
+            75% {
+                transform: translate(20px, 30px) rotate(270deg);
+            }
+        }
+        
+        /* قلب متحرك */
+        .heart-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            animation: heartBeat 2s infinite;
+        }
+        
+        .heart {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            transform: rotate(-45deg);
+            animation: pulse 2s infinite;
+        }
+        
+        .heart:before,
+        .heart:after {
+            content: "";
+            width: 80px;
+            height: 80px;
+            position: absolute;
+            left: 40px;
+            top: 0;
+            background: #fff;
+            border-radius: 50px 50px 0 0;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+        
+        .heart:after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: rotate(-45deg) scale(1);
+            }
+            50% {
+                transform: rotate(-45deg) scale(1.2);
+            }
+        }
+        
+        @keyframes heartBeat {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            25% {
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+            75% {
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+        }
+        
+        /* نجوم متحركة */
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+        
+        .star {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.5);
+            }
+        }
+        
+        /* حاوية تسجيل الدخول */
+        .login-container {
+            position: relative;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 50px 40px;
+            border-radius: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 450px;
+            animation: slideUp 1s ease-out;
+            text-align: center;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* شعار القلب */
+        .logo-container {
+            margin-bottom: 30px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .logo-icon {
+            font-size: 80px;
+            margin-bottom: 10px;
+        }
+        
+        .logo-text {
+            font-size: 32px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            animation: gradientShift 3s infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        .logo-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        /* نموذج تسجيل الدخول */
+        .login-form {
+            text-align: right;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            animation: inputFocus 0.3s ease;
+        }
+        
+        @keyframes inputFocus {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-login:active {
+            transform: translateY(0);
+        }
+        
+        /* تأثير موجي عند الضغط */
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-login:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        /* رسائل الخطأ والنجاح */
+        .messages {
+            margin-bottom: 20px;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* نصوص إنهاء */
+        .footer-text {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+            
+            .logo-text {
+                font-size: 24px;
+            }
+            
+            .logo-icon {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- خلفية متحركة -->
+    <div class="background-animation">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
+    
+    <!-- نجوم متحركة -->
+    <div class="stars">
+        <div class="star" style="top: 10%; left: 10%;">⭐</div>
+        <div class="star" style="top: 20%; left: 80%; animation-delay: 0.5s;">⭐</div>
+        <div class="star" style="top: 80%; left: 20%; animation-delay: 1s;">⭐</div>
+        <div class="star" style="top: 50%; left: 70%; animation-delay: 1.5s;">⭐</div>
+        <div class="star" style="top: 70%; left: 50%; animation-delay: 2s;">⭐</div>
+    </div>
+    
+    <!-- قلب متحرك في الخلفية -->
+    <div class="heart-container">
+        <div class="heart"></div>
+    </div>
+    
+    <!-- حاوية تسجيل الدخول -->
+    <div class="login-container">
+        <div class="logo-container">
+            <img src="{% static 'img/favicon.svg' %}" alt="شعار قلب العرب" class="logo-icon" style="width: 120px; height: 120px;">
+            <div class="logo-text">قلب العرب</div>
+            <div class="logo-subtitle">نظام إدارة المخزون</div>
+        </div>
+        
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="id_username">👤 اسم المستخدم</label>
+                <input type="text" 
+                       name="username" 
+                       id="id_username" 
+                       placeholder="أدخل اسم المستخدم" 
+                       required 
+                       autofocus
+                       autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="id_password">🔒 كلمة المرور</label>
+                <input type="password" 
+                       name="password" 
+                       id="id_password" 
+                       placeholder="أدخل كلمة المرور" 
+                       required
+                       autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="btn-login">
+                🚀 تسجيل الدخول
+            </button>
+        </form>
+        
+        <div class="footer-text">
+            © 2025 قلب العرب - جميع الحقوق محفوظة
+        </div>
+    </div>
+    
+    <script>
+        // تأثيرات تفاعلية إضافية
+        document.querySelectorAll('.form-group input').forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'scale(1.02)';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'scale(1)';
+            });
+        });
+        
+        // إضافة نجمة جديدة بشكل عشوائي
+        setInterval(() => {
+            const stars = document.querySelector('.stars');
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 3 + 's';
+            star.textContent = '⭐';
+            stars.appendChild(star);
+            
+            // إزالة النجمة بعد 3 ثواني
+            setTimeout(() => {
+                star.remove();
+            }, 3000);
+        }, 2000);
+    </script>
+</body>
+</html>
+

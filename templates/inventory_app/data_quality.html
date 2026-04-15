@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}جودة البيانات{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">🛠️ فحص جودة البيانات</h1>
+        <a href="{% url 'inventory_app:dashboard' %}" class="btn btn-secondary">عودة للوحة التحكم</a>
+    </div>
+
+    <div class="row">
+        <!-- Products without Location -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">⚠️ منتجات بدون موقع ({{ products_no_location.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if products_no_location %}
+                    <div class="table-responsive" style="max-height: 300px;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم المنتج</th>
+                                    <th>اسم المنتج</th>
+                                    <th>الكمية</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products_no_location %}
+                                <tr>
+                                    <td class="fw-bold">{{ product.product_number }}</td>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.quantity }}</td>
+                                    <td>
+                                        <a href="{% url 'inventory_app:product_detail' product.id %}" class="btn btn-sm btn-outline-primary">عرض</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-success text-center my-3">✅ جميع المنتجات لها مواقع</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Quantity (< 12) -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">📉 منتجات أقل من 12 حبة ({{ products_low_qty.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if products_low_qty %}
+                    <div class="table-responsive" style="max-height: 300px;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم المنتج</th>
+                                    <th>اسم المنتج</th>
+                                    <th>الكمية</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products_low_qty %}
+                                <tr>
+                                    <td class="fw-bold">{{ product.product_number }}</td>
+                                    <td>{{ product.name }}</td>
+                                    <td class="text-danger fw-bold">{{ product.quantity }}</td>
+                                    <td>
+                                        <a href="{% url 'inventory_app:product_detail' product.id %}" class="btn btn-sm btn-outline-primary">عرض</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-success text-center my-3">✅ لا توجد منتجات أقل من 12 حبة</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- No Image -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">🖼️ منتجات بدون صور ({{ products_no_image.count }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if products_no_image %}
+                    <div class="table-responsive" style="max-height: 300px;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>رقم المنتج</th>
+                                    <th>اسم المنتج</th>
+                                    <th>الكمية</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products_no_image %}
+                                <tr>
+                                    <td class="fw-bold">{{ product.product_number }}</td>
+                                    <td>{{ product.name }}</td>
+                                    <td>{{ product.quantity }}</td>
+                                    <td>
+                                        <a href="{% url 'inventory_app:product_detail' product.id %}" class="btn btn-sm btn-outline-primary">عرض</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-success text-center my-3">✅ جميع المنتجات تحتوي على صور</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty Containers -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">📦 حاويات فارغة ({{ empty_containers.count }})</h5>
+                </div>
+                <div class="card-body">
+                     {% if empty_containers %}
+                    <div class="table-responsive" style="max-height: 300px;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>الحاوية</th>
+                                    <th>الوصف</th>
+                                    <th>إجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for container in empty_containers %}
+                                <tr>
+                                    <td>{{ container.name }}</td>
+                                    <td>{{ container.description }}</td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">فارغة</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-success text-center my-3">✅ جميع الحاويات مستخدمة</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

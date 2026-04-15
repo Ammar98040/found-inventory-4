@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل الطلبية {{ order.order_number }}</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <style>
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .detail-actions .btn {
+            padding: 10px 16px;
+            font-size: 0.95rem;
+        }
+        
+        .order-info {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+        
+        .info-value {
+            color: #1e293b;
+            font-weight: bold;
+        }
+        
+        .products-table {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        th {
+            background: #f8fafc;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        
+        @media (max-width: 768px) {
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .info-row {
+                flex-direction: column;
+                gap: 5px;
+            }
+            .detail-actions .btn {
+                flex: 1 1 100%;
+            }
+        }
+
+        @media print {
+            body {
+                visibility: hidden;
+                margin: 0;
+                padding: 0;
+            }
+            .container, .container * {
+                visibility: visible;
+            }
+            .container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 10px;
+                transform: scale(0.85); /* تقليص الحجم ليتناسب مع الصفحة */
+                transform-origin: top left;
+            }
+            .no-print, .detail-actions, .btn {
+                display: none !important;
+            }
+            .order-info, .products-table {
+                box-shadow: none !important;
+                border: none !important;
+            }
+            /* Hide columns 6 and 7 (Before/After) - Adjusted for Image and Price columns */
+            th:nth-child(6), td:nth-child(6),
+            th:nth-child(7), td:nth-child(7) {
+                display: none;
+            }
+            th, td {
+                padding: 4px !important; /* تقليل الهوامش الداخلية */
+                font-size: 10pt; /* تصغير الخط */
+            }
+            img {
+                max-width: 40px !important; /* تصغير الصور في الطباعة */
+                max-height: 40px !important;
+            }
+            @page {
+                size: auto;
+                margin: 0.5cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="order-header">
+            <h1>📋 تفاصيل الطلبية: {{ order.order_number }}</h1>
+            <div>
+                <a href="/orders/" class="btn btn-secondary">
+                    <span class="btn-icon">←</span>
+                    العودة
+                </a>
+            </div>
+        </div>
+        
+        <div class="order-info">
+            {% if order.recipient_name %}
+            <div class="info-row">
+                <span class="info-label">اسم المستلم:</span>
+                <span class="info-value">{{ order.recipient_name }}</span>
+            </div>
+            {% endif %}
+            <div class="info-row">
+                <span class="info-label">رقم الطلبية:</span>
+                <span class="info-value" style="font-family: monospace;">{{ order.order_number }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">عدد المنتجات:</span>
+                <span class="info-value">{{ order.total_products }} منتج</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">إجمالي الكميات المسحوبة:</span>
+                <span class="info-value">{{ order.total_quantities }} حبة</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">تاريخ وساعة السحب:</span>
+                <span class="info-value">{{ order.created_at|date:"Y-m-d H:i" }}</span>
+            </div>
+            {% if order.notes %}
+            <div class="info-row notes-row">
+                <span class="info-label">ملاحظات:</span>
+                <span class="info-value">{{ order.notes }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="detail-actions">
+            <a href="{% url 'inventory_app:export_order_pdf' order.id %}" class="btn btn-primary">
+                <span class="btn-icon">📄</span>
+                PDF
+            </a>
+            <button class="btn btn-secondary" onclick="window.print()">
+                <span class="btn-icon">🖨️</span>
+                طباعة
+            </button>
+        </div>
+        
+        <div class="products-table">
+            <h2 style="margin-bottom: 20px;">المنتجات في هذه الطلبية:</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>رقم المنتج</th>
+                        <th>الصورة</th>
+                        <th>سعر الدرزن</th>
+                        <th>الكمية المسحوبة</th>
+                        <th>السعر الفعلي</th>
+                        <th>الكمية قبل</th>
+                        <th>الكمية بعد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in order.products_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ product.product_number }}</strong></td>
+                        <td>
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.product_number }}" style="max-width: 50px; max-height: 50px; object-fit: contain;">
+                            {% else %}
+                            <span style="color: #ccc;">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:#64748b;">{{ product.price12|default:0 }}</td>
+                        <td style="font-weight:700;">{{ product.quantity_taken }}</td>
+                        <td style="color:#059669; font-weight:800;">{{ product.line_total|default:0 }}</td>
+                        <td>{{ product.old_quantity }}</td>
+                        <td>{{ product.new_quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr style="background:#1e293b; color:#fff;">
+                        <td colspan="5" style="text-align:right; font-weight:800; padding:12px 8px; font-size:1rem;">
+                            الإجمالي النهائي (سعر الدرزن ÷ 12 × الكمية)
+                        </td>
+                        <td style="font-weight:900; font-size:1.1rem; color:#4ade80; padding:12px 8px;">
+                            {{ grand_total }} ر.س
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</body>
+<script>
+    (function(){
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('print') === '1') {
+            setTimeout(function(){ window.print(); }, 300);
+        }
+    })();
+</script>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجلات العمليات</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
+
+    <style>
+        .operation-section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+        .operation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        .operation-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .operation-header.added { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #065f46; }
+        .operation-header.updated { background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%); color: #1e40af; }
+        .operation-header.deleted { background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%); color: #991b1b; }
+        .operation-header.quantity_taken { background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%); color: #92400e; }
+        .operation-header.quantity_added { background: linear-gradient(135deg, #dcfce7 0%, #86efac 100%); color: #065f46; }
+        .operation-header.location_assigned { background: linear-gradient(135deg, #f3e8ff 0%, #c084fc 100%); color: #6b21a8; }
+        .operation-header.location_removed { background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%); color: #991b1b; }
+        .log-entry {
+            padding: 18px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border-right: 5px solid;
+            transition: all 0.3s ease;
+        }
+        .log-entry:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .added-entry { background: #f0fdf4; border-right-color: #10b981; }
+        .updated-entry { background: #eff6ff; border-right-color: #3b82f6; }
+        .deleted-entry { background: #fef2f2; border-right-color: #ef4444; }
+        .quantity_taken-entry { background: #fffbeb; border-right-color: #f59e0b; }
+        .quantity_added-entry { background: #f0fdf4; border-right-color: #10b981; }
+        .location_assigned-entry { background: #faf5ff; border-right-color: #8b5cf6; }
+        .location_removed-entry { background: #fef2f2; border-right-color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 10px;">
+            <h1>📋 سجلات العمليات</h1>
+            {% if not action_filter %}
+            <span style="background: #eef2ff; color: #3730a3; padding: 8px 14px; border-radius: 999px; font-weight: 600;">
+                إجمالي العمليات: {{ total_count|default:"0" }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if daily_summary %}
+        <div style="background: white; padding: 0; border-radius: 12px; box-shadow: var(--shadow-lg); margin-bottom: 25px;">
+            <div style="display:flex; gap:6px; padding: 6px; align-items:center; flex-wrap:wrap;">
+                <button id="toggle-day" style="background:#0f172a; color:white; border:none; padding:10px 14px; border-radius:8px; font-weight:700; cursor:pointer;">ملخّص اليوم</button>
+                <button id="toggle-week" style="background:#f1f5f9; color:#0f172a; border:none; padding:10px 14px; border-radius:8px; font-weight:700; cursor:pointer;">ملخّص الأسبوع</button>
+                <button id="toggle-month" style="background:#f1f5f9; color:#0f172a; border:none; padding:10px 14px; border-radius:8px; font-weight:700; cursor:pointer;">ملخّص الشهر</button>
+            </div>
+            <div id="daily-summary" style="background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin: 0 12px 12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="font-weight:700;">🕒 ملخص آخر 24 ساعة</div>
+                    <div style="background:#1e293b; padding:6px 12px; border-radius:999px;">إجمالي: {{ daily_summary.total|default:"0" }}</div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:12px;">
+                    <a href="?action=added" style="text-decoration:none;">
+                        <div style="background:#dcfce7; color:#065f46; border-right:4px solid #10b981; padding:12px; border-radius:10px; font-weight:600;">إضافة: {{ daily_summary.actions.added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=updated" style="text-decoration:none;">
+                        <div style="background:#dbeafe; color:#1e40af; border-right:4px solid #3b82f6; padding:12px; border-radius:10px; font-weight:600;">تعديل: {{ daily_summary.actions.updated|default:"0" }}</div>
+                    </a>
+                    <a href="?action=deleted" style="text-decoration:none;">
+                        <div style="background:#fee2e2; color:#991b1b; border-right:4px solid #ef4444; padding:12px; border-radius:10px; font-weight:600;">حذف: {{ daily_summary.actions.deleted|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_taken" style="text-decoration:none;">
+                        <div style="background:#fef3c7; color:#92400e; border-right:4px solid #f59e0b; padding:12px; border-radius:10px; font-weight:600;">سحب كمية: {{ daily_summary.actions.quantity_taken|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_added" style="text-decoration:none;">
+                        <div style="background:#ecfccb; color:#3f6212; border-right:4px solid #84cc16; padding:12px; border-radius:10px; font-weight:600;">إضافة كمية: {{ daily_summary.actions.quantity_added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_assigned" style="text-decoration:none;">
+                        <div style="background:#e0e7ff; color:#1e293b; border-right:4px solid #6366f1; padding:12px; border-radius:10px; font-weight:600;">ربط موقع: {{ daily_summary.actions.location_assigned|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_removed" style="text-decoration:none;">
+                        <div style="background:#fae8ff; color:#6b21a8; border-right:4px solid #a855f7; padding:12px; border-radius:10px; font-weight:600;">إلغاء موقع: {{ daily_summary.actions.location_removed|default:"0" }}</div>
+                    </a>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:15px;">
+                    <div style="background:#1e293b; padding:12px; border-radius:10px;">
+                        <div style="font-weight:700; margin-bottom:8px;">الأكثر نشاطًا (منتجات)</div>
+                        {% for p in daily_summary.top_products %}
+                            <div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,0.1);">
+                                <span style="color:#93c5fd;">{{ p.product_number }}</span>
+                                <span style="background:#334155; padding:2px 8px; border-radius:999px;">{{ p.count }}</span>
+                            </div>
+                        {% empty %}
+                            <div style="color:#94a3b8;">لا يوجد بيانات حديثة</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {% if weekly_summary %}
+            <div id="weekly-summary" style="display:none; background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin: 0 12px 12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="font-weight:700;">🗓️ ملخص آخر 7 أيام</div>
+                    <div style="background:#1e293b; padding:6px 12px; border-radius:999px;">إجمالي: {{ weekly_summary.total|default:"0" }}</div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:12px;">
+                    <a href="?action=added" style="text-decoration:none;">
+                        <div style="background:#dcfce7; color:#065f46; border-right:4px solid #10b981; padding:12px; border-radius:10px; font-weight:600;">إضافة: {{ weekly_summary.actions.added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=updated" style="text-decoration:none;">
+                        <div style="background:#dbeafe; color:#1e40af; border-right:4px solid #3b82f6; padding:12px; border-radius:10px; font-weight:600;">تعديل: {{ weekly_summary.actions.updated|default:"0" }}</div>
+                    </a>
+                    <a href="?action=deleted" style="text-decoration:none;">
+                        <div style="background:#fee2e2; color:#991b1b; border-right:4px solid #ef4444; padding:12px; border-radius:10px; font-weight:600;">حذف: {{ weekly_summary.actions.deleted|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_taken" style="text-decoration:none;">
+                        <div style="background:#fef3c7; color:#92400e; border-right:4px solid #f59e0b; padding:12px; border-radius:10px; font-weight:600;">سحب كمية: {{ weekly_summary.actions.quantity_taken|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_added" style="text-decoration:none;">
+                        <div style="background:#ecfccb; color:#3f6212; border-right:4px solid #84cc16; padding:12px; border-radius:10px; font-weight:600;">إضافة كمية: {{ weekly_summary.actions.quantity_added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_assigned" style="text-decoration:none;">
+                        <div style="background:#e0e7ff; color:#1e293b; border-right:4px solid #6366f1; padding:12px; border-radius:10px; font-weight:600;">ربط موقع: {{ weekly_summary.actions.location_assigned|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_removed" style="text-decoration:none;">
+                        <div style="background:#fae8ff; color:#6b21a8; border-right:4px solid #a855f7; padding:12px; border-radius:10px; font-weight:600;">إلغاء موقع: {{ weekly_summary.actions.location_removed|default:"0" }}</div>
+                    </a>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:15px;">
+                    <div style="background:#1e293b; padding:12px; border-radius:10px;">
+                        <div style="font-weight:700; margin-bottom:8px;">الأكثر نشاطًا (منتجات)</div>
+                        {% for p in weekly_summary.top_products %}
+                            <div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,0.1);">
+                                <span style="color:#93c5fd;">{{ p.product_number }}</span>
+                                <span style="background:#334155; padding:2px 8px; border-radius:999px;">{{ p.count }}</span>
+                            </div>
+                        {% empty %}
+                            <div style="color:#94a3b8;">لا يوجد بيانات حديثة</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if monthly_summary %}
+            <div id="monthly-summary" style="display:none; background: #0f172a; color: white; padding: 20px; border-radius: 12px; margin: 0 12px 12px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="font-weight:700;">📅 ملخص آخر 30 يومًا</div>
+                    <div style="background:#1e293b; padding:6px 12px; border-radius:999px;">إجمالي: {{ monthly_summary.total|default:"0" }}</div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:12px;">
+                    <a href="?action=added" style="text-decoration:none;">
+                        <div style="background:#dcfce7; color:#065f46; border-right:4px solid #10b981; padding:12px; border-radius:10px; font-weight:600;">إضافة: {{ monthly_summary.actions.added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=updated" style="text-decoration:none;">
+                        <div style="background:#dbeafe; color:#1e40af; border-right:4px solid #3b82f6; padding:12px; border-radius:10px; font-weight:600;">تعديل: {{ monthly_summary.actions.updated|default:"0" }}</div>
+                    </a>
+                    <a href="?action=deleted" style="text-decoration:none;">
+                        <div style="background:#fee2e2; color:#991b1b; border-right:4px solid #ef4444; padding:12px; border-radius:10px; font-weight:600;">حذف: {{ monthly_summary.actions.deleted|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_taken" style="text-decoration:none;">
+                        <div style="background:#fef3c7; color:#92400e; border-right:4px solid #f59e0b; padding:12px; border-radius:10px; font-weight:600;">سحب كمية: {{ monthly_summary.actions.quantity_taken|default:"0" }}</div>
+                    </a>
+                    <a href="?action=quantity_added" style="text-decoration:none;">
+                        <div style="background:#ecfccb; color:#3f6212; border-right:4px solid #84cc16; padding:12px; border-radius:10px; font-weight:600;">إضافة كمية: {{ monthly_summary.actions.quantity_added|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_assigned" style="text-decoration:none;">
+                        <div style="background:#e0e7ff; color:#1e293b; border-right:4px solid #6366f1; padding:12px; border-radius:10px; font-weight:600;">ربط موقع: {{ monthly_summary.actions.location_assigned|default:"0" }}</div>
+                    </a>
+                    <a href="?action=location_removed" style="text-decoration:none;">
+                        <div style="background:#fae8ff; color:#6b21a8; border-right:4px solid #a855f7; padding:12px; border-radius:10px; font-weight:600;">إلغاء موقع: {{ monthly_summary.actions.location_removed|default:"0" }}</div>
+                    </a>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-top:15px;">
+                    <div style="background:#1e293b; padding:12px; border-radius:10px;">
+                        <div style="font-weight:700; margin-bottom:8px;">الأكثر نشاطًا (منتجات)</div>
+                        {% for p in monthly_summary.top_products %}
+                            <div style="display:flex; justify-content:space-between; gap:8px; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,0.1);">
+                                <span style="color:#93c5fd;">{{ p.product_number }}</span>
+                                <span style="background:#334155; padding:2px 8px; border-radius:999px;">{{ p.count }}</span>
+                            </div>
+                        {% empty %}
+                            <div style="color:#94a3b8;">لا يوجد بيانات حديثة</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- البحث -->
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: var(--shadow-lg); margin-bottom: 20px;">
+            <form method="GET" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <input type="text" name="search" placeholder="🔍 ابحث برقم المنتج..." 
+                       value="{{ search }}" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; transition: all 0.2s;">
+                <select name="action" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; background: white; cursor: pointer;">
+                    <option value="">الكل</option>
+                    <option value="added">إضافة منتج</option>
+                    <option value="updated">تعديل منتج</option>
+                    <option value="deleted">حذف منتج</option>
+                    <option value="quantity_taken">سحب كمية</option>
+                    <option value="quantity_added">إضافة كمية</option>
+                    <option value="location_assigned">ربط بالمواقع</option>
+                    <option value="location_removed">إلغاء ربط موقع</option>
+                </select>
+                <button type="submit" class="btn btn--sm btn--primary">
+                    <span class="icon">🔍</span>
+                    <span>بحث</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- إضافة منتجات -->
+        {% regroup logs by action as grouped_logs %}
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'added' %}
+                <div class="operation-section">
+                    <div class="operation-header added">
+                        <h2>➕ إضافة منتجات</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.added %}{{ action_counts.added }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry added-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div><strong>📊 الكمية:</strong> <span style="color: #10b981; font-weight: bold;">{{ log.quantity_after }}</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+                {% if log.notes %}
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(16,185,129,0.1); border-radius: 6px; font-size: 0.9rem; color: #065f46;">
+                        {{ log.notes }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- تعديل منتجات -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'updated' %}
+                <div class="operation-section">
+                    <div class="operation-header updated">
+                        <h2>✏️ تعديل منتجات</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.updated %}{{ action_counts.updated }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry updated-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 12px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+                {% if log.notes %}
+                    <div style="background: #dbeafe; padding: 12px; border-radius: 8px; font-size: 0.95rem; color: #1e40af; border-right: 3px solid #3b82f6;">
+                        <strong>📝 التغييرات:</strong><br>{{ log.notes }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- سحب كميات -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'quantity_taken' %}
+                <div class="operation-section">
+                    <div class="operation-header quantity_taken">
+                        <h2>📤 سحب كميات</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.quantity_taken %}{{ action_counts.quantity_taken }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry quantity_taken-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div><strong>📊 قبل:</strong> <span style="color: #6b7280; font-size: 1.1rem;">{{ log.quantity_before }}</span></div>
+                    <div><strong>📉 بعد:</strong> <span style="color: #dc2626; font-size: 1.1rem; font-weight: bold;">{{ log.quantity_after }}</span></div>
+                    <div><strong>➖ المسحوب:</strong> <span style="color: #dc2626; font-size: 1.1rem; font-weight: bold;">{{ log.quantity_change }} وحدة</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- إضافة كميات -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'quantity_added' %}
+                <div class="operation-section">
+                    <div class="operation-header quantity_added">
+                        <h2>🟢 إضافة كميات</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.quantity_added %}{{ action_counts.quantity_added }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry quantity_added-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div><strong>📊 قبل:</strong> <span style="color: #6b7280; font-size: 1.1rem;">{{ log.quantity_before }}</span></div>
+                    <div><strong>📈 بعد:</strong> <span style="color: #16a34a; font-size: 1.1rem; font-weight: bold;">{{ log.quantity_after }}</span></div>
+                    <div><strong>➕ المضاف:</strong> <span style="color: #16a34a; font-size: 1.1rem; font-weight: bold;">{{ log.quantity_change }} وحدة</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+                {% if log.notes %}
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(22,163,74,0.1); border-radius: 6px; font-size: 0.9rem; color: #065f46;">
+                        {{ log.notes }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- ربط بالمواقع -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'location_assigned' %}
+                <div class="operation-section">
+                    <div class="operation-header location_assigned">
+                        <h2>📍 ربط بالمواقع</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.location_assigned %}{{ action_counts.location_assigned }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry location_assigned-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div style="grid-column: span 2;"><strong>📍 المواقع:</strong> <span style="color: #8b5cf6;">{{ log.notes }}</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- إلغاء ربط موقع -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'location_removed' %}
+                <div class="operation-section">
+                    <div class="operation-header location_removed">
+                        <h2>📍 إلغاء ربط موقع</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.location_removed %}{{ action_counts.location_removed }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry location_removed-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: var(--primary-color); font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div style="grid-column: span 2;"><strong>📍 التفاصيل:</strong> <span style="color: #991b1b;">{{ log.notes }}</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        <!-- حذف منتجات -->
+        {% for group in grouped_logs %}
+            {% if group.grouper == 'deleted' %}
+                <div class="operation-section">
+                    <div class="operation-header deleted">
+                        <h2>🗑️ حذف منتجات</h2>
+                        <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-weight: bold;">{% if action_counts.deleted %}{{ action_counts.deleted }}{% else %}{{ group.list|length }}{% endif %}</span>
+                    </div>
+        {% for log in group.list %}
+            <div class="log-entry deleted-entry">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>📦 رقم المنتج:</strong> <span style="color: #dc2626; font-weight: bold;">{{ log.product_number }}</span></div>
+                    <div><strong>📊 الكمية المحذوفة:</strong> <span style="color: #dc2626; font-weight: bold;">{{ log.quantity_before }} وحدة</span></div>
+                    <div><strong>👤 المستخدم:</strong> {{ log.user }}</div>
+                    <div><strong>📅 التاريخ:</strong> <span style="color: var(--text-secondary);">{{ log.created_at|date:"Y-m-d H:i" }}</span></div>
+                </div>
+                {% if log.product_snapshot %}
+                    <div style="margin-top: 12px; padding: 12px; background: #fff; border: 1px dashed #fecaca; border-radius: 8px;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                            <div><strong>الاسم:</strong> {{ log.product_snapshot.name }}</div>
+                            <div><strong>الفئة:</strong> {{ log.product_snapshot.category|default:"-" }}</div>
+                            <div><strong>الحاوية:</strong> {{ log.product_snapshot.container|default:"-" }}</div>
+                            <div><strong>الموقع:</strong> {{ log.product_snapshot.location|default:"-" }}</div>
+                            <div><strong>الباركود:</strong> {{ log.product_snapshot.barcode|default:"-" }}</div>
+                            <div><strong>السعر:</strong> {% if log.product_snapshot.price %}{{ log.product_snapshot.price }}{% else %}-{% endif %}</div>
+                            <div style="grid-column: 1 / -1"><strong>الوصف:</strong> {{ log.product_snapshot.description|default:"" }}</div>
+                            {% if log.product_snapshot.image_url %}
+                                <div style="grid-column: 1 / -1; margin-top: 10px;">
+                                    <a href="{{ log.product_snapshot.image_url }}" target="_blank" style="color: #2563eb;">رابط الصورة</a>
+                                </div>
+                            {% endif %}
+                            
+                            {% if request.user.user_profile.is_admin %}
+                            <div style="grid-column: 1 / -1; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                                <a href="{% url 'inventory_app:restore_product' log.id %}" class="btn btn--sm btn--primary" onclick="return confirm('هل أنت متأكد من استعادة هذا المنتج؟')" style="background-color: #10b981; color: white; padding: 6px 12px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                                    ♻️ استعادة المنتج
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+                {% if log.notes %}
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(239,68,68,0.1); border-radius: 6px; font-size: 0.9rem; color: #991b1b;">
+                        {{ log.notes }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+        {% if not logs %}
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: var(--shadow-lg); text-align: center;">
+            <p style="color: var(--text-secondary); font-size: 1.1rem;">لا توجد سجلات حتى الآن</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="/audit-logs/" class="sidebar-link active">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+                <a href="/data-quality/" class="sidebar-link">
+                    <span class="icon">🛠️</span>
+                    <span class="text">جودة البيانات</span>
+                </a>
+                <a href="/inventory-insights/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">توصيات المخزون</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    <script>
+    (function(){
+        var btnDay = document.getElementById('toggle-day');
+        var btnWeek = document.getElementById('toggle-week');
+        var btnMonth = document.getElementById('toggle-month');
+        if (!btnDay || !btnWeek) return;
+        var daily = document.getElementById('daily-summary');
+        var weekly = document.getElementById('weekly-summary');
+        var monthly = document.getElementById('monthly-summary');
+        function setActive(period){
+            if (period === 'day'){
+                daily.style.display = '';
+                if (weekly) weekly.style.display = 'none';
+                if (monthly) monthly.style.display = 'none';
+                btnDay.style.background = '#0f172a';
+                btnDay.style.color = 'white';
+                btnWeek.style.background = '#f1f5f9';
+                btnWeek.style.color = '#0f172a';
+                if (btnMonth){ btnMonth.style.background = '#f1f5f9'; btnMonth.style.color = '#0f172a'; }
+            } else {
+                daily.style.display = 'none';
+                if (period === 'week'){
+                    if (weekly) weekly.style.display = '';
+                    if (monthly) monthly.style.display = 'none';
+                    btnWeek.style.background = '#0f172a';
+                    btnWeek.style.color = 'white';
+                    if (btnMonth){ btnMonth.style.background = '#f1f5f9'; btnMonth.style.color = '#0f172a'; }
+                } else if (period === 'month'){
+                    if (weekly) weekly.style.display = 'none';
+                    if (monthly) monthly.style.display = '';
+                    if (btnMonth){ btnMonth.style.background = '#0f172a'; btnMonth.style.color = 'white'; }
+                    btnWeek.style.background = '#f1f5f9';
+                    btnWeek.style.color = '#0f172a';
+                }
+                btnDay.style.background = '#f1f5f9';
+                btnDay.style.color = '#0f172a';
+            }
+            var base = window.location.pathname + '?';
+            var params = new URLSearchParams(window.location.search);
+            params.set('period', period);
+            var newUrl = base + params.toString();
+            window.history.replaceState({}, '', newUrl);
+        }
+        btnDay.addEventListener('click', function(){ setActive('day'); });
+        btnWeek.addEventListener('click', function(){ setActive('week'); });
+        if (btnMonth){ btnMonth.addEventListener('click', function(){ setActive('month'); }); }
+        setActive('{{ initial_period }}');
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إنشاء فاتورة عرض أسعار #{{ next_invoice_number }}</title>
+{% load static %}
+<link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+<link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+<style>
+/* ===== الصفحة العامة ===== */
+*, *::before, *::after { box-sizing: border-box; }
+body { background: #f0f4f8; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; margin: 0; padding: 0; direction: rtl; }
+
+/* ===== شريط التحكم (لا يُطبع) ===== */
+.control-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(102,126,234,.4);
+}
+.control-bar h2 { color: #fff; margin: 0; font-size: 1.2rem; }
+.ctrl-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.ctrl-btn {
+    padding: 9px 18px; border: none; border-radius: 10px; font-size: .95rem;
+    font-weight: 700; cursor: pointer; transition: all .25s; display: flex; align-items: center; gap: 6px;
+}
+.btn-back    { background: rgba(255,255,255,.18); color: #fff; text-decoration:none; }
+.btn-save    { background: #10b981; color: #fff; }
+.btn-print   { background: #fff; color: #764ba2; }
+.btn-row     { background: rgba(255,255,255,.15); color: #fff; border: 2px dashed rgba(255,255,255,.5); }
+.ctrl-btn:hover { transform: translateY(-2px); opacity: .92; }
+
+/* ===== حاوية الفاتورة ===== */
+.invoice-wrapper {
+    max-width: 900px; margin: 28px auto; padding: 0 16px 60px;
+}
+
+/* ===== ورقة الفاتورة ===== */
+.invoice-paper {
+    background: #fff;
+    border: 2px solid #1a3a6b;
+    border-radius: 4px;
+    padding: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,.12);
+}
+
+/* ===== رأس الفاتورة ===== */
+.inv-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 14px 18px 10px;
+    border-bottom: 3px double #1a3a6b;
+    gap: 10px;
+}
+.inv-company-ar { text-align: right; }
+.inv-company-ar .name-ar { font-size: 1.6rem; font-weight: 900; color: #1a3a6b; }
+.inv-company-ar .details-ar { font-size: .8rem; color: #333; line-height: 1.7; margin-top: 4px; }
+.inv-logo { text-align: center; }
+.inv-logo img { width: 80px; height: 80px; object-fit: contain; }
+.inv-logo-placeholder { font-size: 64px; line-height: 1; }
+.inv-company-en { text-align: left; }
+.inv-company-en .name-en { font-size: 1rem; font-weight: 700; color: #1a3a6b; }
+.inv-company-en .details-en { font-size: .75rem; color: #555; line-height: 1.7; margin-top: 4px; }
+
+/* ===== شريط رقم الفاتورة والتاريخ ===== */
+.inv-meta {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 8px 18px;
+    background: #f8faff;
+    border-bottom: 1px solid #c5d5f0;
+    gap: 8px;
+}
+.inv-title {
+    text-align: center;
+    font-size: 1.25rem; font-weight: 900; color: #1a3a6b;
+    letter-spacing: 1px;
+}
+.inv-num-badge {
+    font-size: 1.6rem; font-weight: 900; color: #c0392b;
+    background: #fff3f0; border: 2px solid #c0392b;
+    padding: 2px 16px; border-radius: 6px;
+}
+.inv-dates { text-align: right; font-size: .85rem; color: #333; }
+.inv-dates .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.inv-dates label { font-weight: 700; min-width: 70px; color: #1a3a6b; white-space: nowrap; }
+.inv-dates input[type="text"] {
+    border: none; border-bottom: 1px dashed #999;
+    background: transparent; font-size: .85rem; color: #222; padding: 1px 4px; width: 120px;
+    text-align: center; outline: none;
+}
+.inv-dates input[type="text"]:focus { border-bottom-color: #1a3a6b; }
+
+/* ===== بيانات العميل ===== */
+.inv-customer {
+    padding: 8px 18px 6px;
+    border-bottom: 1px solid #c5d5f0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 20px;
+}
+.cust-row { display: flex; align-items: center; gap: 6px; }
+.cust-row label { font-weight: 700; color: #1a3a6b; font-size: .88rem; min-width: 110px; white-space: nowrap; }
+.cust-row input[type="text"] {
+    flex: 1; border: none; border-bottom: 1px solid #bbb;
+    background: transparent; font-size: .88rem; color: #222; padding: 2px 4px; outline: none;
+}
+.cust-row input[type="text"]:focus { border-bottom-color: #1a3a6b; }
+.cust-full { grid-column: 1 / -1; }
+
+/* ===== جدول الأصناف ===== */
+.inv-table-wrap { overflow-x: auto; }
+.inv-table {
+    width: 100%; border-collapse: collapse; font-size: .88rem;
+}
+.inv-table th {
+    background: #1a3a6b; color: #fff; padding: 8px 6px;
+    text-align: center; font-weight: 700; border: 1px solid #1a3a6b; font-size: .85rem;
+}
+.inv-table td {
+    border: 1px solid #c5d5f0; padding: 4px 6px; text-align: center; vertical-align: middle;
+}
+.inv-table tbody tr:nth-child(even) { background: #f7f9ff; }
+.inv-table tbody tr:hover { background: #eef2ff; }
+
+/* حقول قابلة للتعديل داخل الجدول */
+.cell-input {
+    width: 100%; border: none; background: transparent; text-align: center;
+    font-size: .88rem; color: #1a1a1a; padding: 2px; outline: none;
+    font-family: inherit;
+}
+.cell-input:focus { background: #fffde7; border-radius: 3px; }
+.cell-input.number-input { font-weight: 700; color: #1a3a6b; }
+.cell-input.qty-input { color: #0a6640; font-weight: 700; }
+.cell-input.price-ro { color: #555; background: #f5f5f5; cursor: default; }
+.cell-input.total-ro { color: #c0392b; font-weight: 700; background: #fff8f8; cursor: default; }
+.cell-input.notes-input { color: #666; }
+.cell-num { width: 36px; color: #888; font-size: .8rem; }
+
+/* زر حذف السطر */
+.del-row-btn {
+    background: #fee2e2; border: none; color: #dc2626; width: 26px; height: 26px;
+    border-radius: 6px; cursor: pointer; font-size: .9rem; transition: all .2s;
+    display: flex; align-items: center; justify-content: center;
+}
+.del-row-btn:hover { background: #dc2626; color: #fff; }
+
+/* رسالة المنتج غير الموجود */
+.not-found-badge {
+    font-size: .75rem; color: #dc2626; display: none; margin-top: 2px;
+}
+
+/* ===== ملخص الحسابات ===== */
+.inv-summary {
+    padding: 12px 18px;
+    border-top: 2px solid #1a3a6b;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+    align-items: start;
+}
+.summary-right { font-size: .85rem; color: #555; padding-top: 4px; }
+.summary-table { width: 100%; }
+.summary-table td { padding: 5px 8px; font-size: .9rem; }
+.summary-table .lbl { color: #555; text-align: right; }
+.summary-table .val { text-align: left; font-weight: 700; color: #222; min-width: 90px; }
+.summary-table .total-final .lbl { color: #1a3a6b; font-weight: 800; font-size: 1rem; }
+.summary-table .total-final .val { color: #c0392b; font-size: 1.1rem; font-weight: 900; }
+.summary-table tr.separator td { border-top: 1px solid #dde; padding-top: 8px; }
+
+/* Tax toggle */
+.tax-toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tax-toggle-btn {
+    padding: 6px 14px; border-radius: 8px; border: 2px solid #dde; background: #f5f5f5;
+    cursor: pointer; font-size: .85rem; font-weight: 700; transition: all .2s;
+}
+.tax-toggle-btn.active { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
+.discount-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.discount-row label { font-size: .88rem; color: #555; white-space: nowrap; }
+.discount-input {
+    width: 100px; padding: 5px 8px; border: 1px solid #c5d5f0; border-radius: 6px;
+    font-size: .9rem; font-weight: 700; text-align: center; color: #c0392b; outline: none;
+}
+.discount-input:focus { border-color: #1a3a6b; }
+
+/* ===== سطر "فقط وقدره" ===== */
+.inv-total-text {
+    padding: 8px 18px 10px;
+    border-top: 1px solid #c5d5f0;
+    display: flex; align-items: center; gap: 10px;
+    font-size: .92rem;
+}
+.inv-total-text .lbl { font-weight: 800; color: #1a3a6b; white-space: nowrap; }
+.inv-total-text .val { font-weight: 700; color: #333; }
+
+/* ===== التوقيع ===== */
+.inv-footer {
+    padding: 10px 18px 16px;
+    border-top: 1px solid #c5d5f0;
+    display: flex; justify-content: space-between; align-items: flex-end;
+}
+.sig-box { text-align: center; min-width: 160px; }
+.sig-line { border-top: 1px solid #333; width: 140px; margin: 30px auto 4px; }
+.sig-label { font-size: .85rem; color: #555; font-weight: 700; }
+
+/* ===== إشعار الحفظ ===== */
+.save-toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    background: #10b981; color: #fff; padding: 12px 28px;
+    border-radius: 12px; font-weight: 700; font-size: 1rem;
+    box-shadow: 0 4px 20px rgba(16,185,129,.4);
+    z-index: 9999; display: none; animation: fadeInUp .3s ease;
+}
+@keyframes fadeInUp {
+    from { opacity:0; transform: translateX(-50%) translateY(20px); }
+    to   { opacity:1; transform: translateX(-50%) translateY(0); }
+}
+
+/* نجمة الحقول المطلوبة */
+.req-star { color: #ef4444; font-weight: 900; font-size: 1.05em; }
+input.req-error { border-bottom: 2px solid #ef4444 !important; background: #fff5f5 !important; }
+
+/* ===== CSS الطباعة ===== */
+@media print {
+    body { background: #fff !important; }
+    .control-bar, .ctrl-btn, .del-row-btn, .add-row-hint,
+    .tax-toggle-row, .discount-row label,
+    .summary-right > *:not(.discount-row),
+    .no-print { display: none !important; }
+    .invoice-wrapper { margin: 0; padding: 0; max-width: 100%; }
+    /* ثبّت الـ grid في الطباعة حتى لا يتحرك التاريخ */
+    .inv-meta {
+        display: grid !important;
+        grid-template-columns: 1fr auto 1fr !important;
+        direction: rtl !important;
+    }
+    .inv-dates { text-align: right !important; }
+    .inv-summary { grid-template-columns: 1fr !important; }
+    .summary-right { display: none; }
+    .invoice-paper { box-shadow: none !important; border: 2px solid #1a3a6b !important; }
+    .cell-input { border-bottom: none !important; }
+    thead { display: table-header-group; }
+    .inv-table tbody tr { page-break-inside: avoid; }
+    .save-toast { display: none !important; }
+    /* إخفاء عمود الملاحظات */
+    .notes-col { display: none !important; }
+    /* إخفاء نجمة الحقول المطلوبة */
+    .req-star { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== شريط التحكم ===== -->
+<div class="control-bar" id="controlBar">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <h2>🧾 فاتورة عرض الأسعار</h2>
+        <span id="draftIndicator" style="font-size:.78rem; color:rgba(255,255,255,.75); opacity:0; transition:opacity .4s;">💾 مسودة محفوظة</span>
+    </div>
+    <div class="ctrl-btns">
+        <a href="/" class="ctrl-btn btn-back">← رجوع</a>
+        <button class="ctrl-btn btn-row" onclick="addRow()">➕ إضافة صنف</button>
+        <button class="ctrl-btn btn-save" onclick="saveInvoice()">💾 حفظ الفاتورة</button>
+        <button class="ctrl-btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+    </div>
+</div>
+
+<!-- ===== ورقة الفاتورة ===== -->
+<div class="invoice-wrapper">
+<div class="invoice-paper" id="invoicePaper">
+
+    <!-- رأس الفاتورة -->
+    <div class="inv-header">
+        <div class="inv-company-ar">
+            <div class="name-ar">قلب العرب للشنط</div>
+            <div class="details-ar">
+                جدة · البلد · الخاسكية · سوق الخاسكية الجديد<br>
+                ت: ٦٤٨٧٤٧٦ · جوال: ٠٥٠٧٥٠٠٩٦١<br>
+                س.ت. ٤٠٣٠٠١٣٩٦٤ · ر.ض. ٣٠٠٧٣٥٧٦١٤٠٠٠٠٣
+            </div>
+        </div>
+        <div class="inv-logo">
+            <div class="inv-logo-placeholder">❤️</div>
+        </div>
+        <div class="inv-company-en">
+            <div class="name-en">Qaleb Alarab For Bags</div>
+            <div class="details-en">
+                Jeddah · Albalad · Alkhaskiya · New Alkhaskiya Market<br>
+                Tel.: 6487476 · Mobile: 0507500961<br>
+                C.R. 4030013964 · VAT 300735761400003
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط رقم الفاتورة والتاريخ -->
+    <div class="inv-meta">
+        <div class="inv-dates" style="text-align:right;">
+            <div class="date-row">
+                <label>التاريخ :</label>
+                <input type="text" id="invDateG" value="{{ today_date }}" placeholder="YYYY/MM/DD">
+            </div>
+            <div class="date-row">
+                <label>الموافق :</label>
+                <input type="text" id="invDateH" value="{{ hijri_date }}" placeholder="التاريخ الهجري">
+            </div>
+        </div>
+        <div style="text-align:center;">
+            <div class="inv-title">فاتورة عرض أسعار</div>
+            <div class="inv-num-badge" id="invNumDisplay">{{ next_invoice_number }}</div>
+        </div>
+        <div style="text-align:left; font-size:.78rem; color:#777; direction:ltr;">
+            SA42100000121000000383310
+        </div>
+    </div>
+
+    <!-- بيانات العميل -->
+    <div class="inv-customer">
+        <div class="cust-row cust-full">
+            <label>المطلوب من المكرم <span class="req-star">*</span> :</label>
+            <input type="text" id="custName" placeholder="اسم العميل الكريم" required>
+        </div>
+        <div class="cust-row">
+            <label>العنوان <span class="req-star">*</span> :</label>
+            <input type="text" id="custAddress" placeholder="العنوان" required>
+        </div>
+        <div class="cust-row">
+            <label>تليفون <span class="req-star">*</span> :</label>
+            <input type="tel" id="custPhone" placeholder="رقم الجوال"
+                   inputmode="numeric" pattern="[0-9]*"
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')" required>
+        </div>
+        <div class="cust-row cust-full">
+            <label>المخرج <span class="req-star">*</span> :</label>
+            <input type="text" id="custIssuer" placeholder="اسم المخرج / الموظف المسؤول" required>
+        </div>
+    </div>
+
+    <!-- جدول الأصناف -->
+    <div class="inv-table-wrap">
+        <table class="inv-table" id="productsTable">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th style="width:100px;">رقم الصنف</th>
+                    <th>الصنف</th>
+                    <th style="width:70px;">السعر</th>
+                    <th style="width:65px;">العدد</th>
+                    <th style="width:80px;" class="no-print" id="stockHeader">الكمية المتوفرة</th>
+                    <th style="width:90px;">القيمة الإجمالية</th>
+                    <th style="width:120px;" class="notes-col">ملاحظات</th>
+                    <th style="width:30px;" class="no-print"></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- صفوف ديناميكية -->
+            </tbody>
+        </table>
+    </div>
+    <div class="add-row-hint" style="text-align:center; padding:6px; color:#9ca3af; font-size:.82rem; border-top:1px dashed #e2e8f0;">
+        اضغط «إضافة صنف» أو Tab في آخر سطر لإضافة صف جديد
+    </div>
+
+    <!-- ملخص الحسابات -->
+    <div class="inv-summary">
+        <!-- يسار: خيارات الضريبة والخصم -->
+        <div class="summary-right">
+            <div class="tax-toggle-row">
+                <span style="font-weight:700; color:#1a3a6b; font-size:.9rem;">الضريبة:</span>
+                <button class="tax-toggle-btn" id="btnNoTax" onclick="setTax(false)">بدون ضريبة</button>
+                <button class="tax-toggle-btn" id="btnWithTax" onclick="setTax(true)">+ ضريبة 15%</button>
+            </div>
+            <div class="discount-row">
+                <label>خصم (ريال):</label>
+                <input type="number" class="discount-input" id="discountInput" value="0" min="0" step="0.01"
+                       oninput="recalcTotals()">
+            </div>
+        </div>
+
+        <!-- يمين: جدول الأرقام النهائية -->
+        <table class="summary-table">
+            <tr>
+                <td class="lbl">الإجمالي قبل الضريبة</td>
+                <td class="val" id="sumSubtotal">0.00</td>
+                <td style="color:#777; font-size:.8rem; padding-right:4px;">ريال</td>
+            </tr>
+            <tr id="taxRow">
+                <td class="lbl">ضريبة القيمة المضافة 15%</td>
+                <td class="val" id="sumTax">0.00</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            <tr id="afterTaxRow">
+                <td class="lbl">المجموع بعد الضريبة</td>
+                <td class="val" id="sumAfterTax">0.00</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            <tr>
+                <td class="lbl">الخصم</td>
+                <td class="val" id="sumDiscount">0.00</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            <tr class="separator total-final">
+                <td class="lbl">الإجمالي النهائي</td>
+                <td class="val" id="sumTotal">0.00</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- فقط وقدره -->
+    <div class="inv-total-text">
+        <span class="lbl">فقط وقدره :</span>
+        <span class="val" id="totalTextDisplay">—</span>
+    </div>
+
+    <!-- التوقيع -->
+    <div class="inv-footer">
+        <div style="font-size:.82rem; color:#888; text-align:center; align-self:center;">
+            شكراً لتعاملكم معنا
+        </div>
+        <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-label">التوقيع</div>
+        </div>
+    </div>
+
+</div><!-- end invoice-paper -->
+</div><!-- end invoice-wrapper -->
+
+<!-- CSRF token مخفي لاستخدامه في طلبات POST -->
+<form id="csrfForm" style="display:none;">{% csrf_token %}</form>
+
+<div class="save-toast" id="saveToast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// ثوابت وحالة
+// ─────────────────────────────────────────────
+const INVOICE_NUMBER = "{{ next_invoice_number }}";
+let rowCount = 0;
+let taxApplied = false;
+
+// ─────────────────────────────────────────────
+// تهيئة الصفحة
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    setTax(false);
+    addRow(); // سطر أول فارغ
+
+    // إزالة تلوين الخطأ عند الكتابة في الحقول المطلوبة
+    ['custName', 'custPhone', 'custAddress', 'custIssuer'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => el.classList.remove('req-error'));
+    });
+
+    // تحميل المسودة إن وُجدت
+    loadDraft();
+});
+
+// ─────────────────────────────────────────────
+// إضافة صف جديد
+// ─────────────────────────────────────────────
+function addRow() {
+    rowCount++;
+    const tbody = document.getElementById('tableBody');
+    const tr = document.createElement('tr');
+    tr.id = `row_${rowCount}`;
+    tr.dataset.rid = rowCount;
+    tr.innerHTML = `
+        <td class="cell-num">${rowCount}</td>
+        <td>
+            <input class="cell-input number-input" type="text"
+                   placeholder="رقم الصنف"
+                   oninput="onNumberInput(this, ${rowCount})"
+                   onblur="fetchProduct(this, ${rowCount})"
+                   onkeydown="handleTabOnLast(event, ${rowCount})">
+            <div class="not-found-badge" id="nf_${rowCount}">❌ غير موجود</div>
+        </td>
+        <td><input class="cell-input" type="text" id="name_${rowCount}" placeholder="اسم الصنف" readonly style="background:#f9f9f9; color:#333;"></td>
+        <td><input class="cell-input price-ro" type="number" id="price_${rowCount}" value="0" readonly tabindex="-1"></td>
+        <td><input class="cell-input qty-input" type="number" id="qty_${rowCount}" value="12" min="1"
+                   oninput="onQtyChange(${rowCount})" onchange="onQtyChange(${rowCount})"></td>
+        <td class="no-print">
+            <input class="cell-input" type="number" id="stock_${rowCount}" value="-"
+                   readonly tabindex="-1"
+                   style="background:#f0f9ff; color:#0369a1; font-weight:700; text-align:center; border:1px solid #bae6fd; border-radius:6px;">
+        </td>
+        <td><input class="cell-input total-ro" type="number" id="linetotal_${rowCount}" value="0" readonly tabindex="-1"></td>
+        <td class="notes-col"><input class="cell-input notes-input" type="text" id="notes_${rowCount}" placeholder="..."></td>
+        <td class="no-print"><button class="del-row-btn" onclick="delRow(${rowCount})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('.number-input').focus();
+    updateRowNumbers();
+}
+
+// ─────────────────────────────────────────────
+// حذف صف
+// ─────────────────────────────────────────────
+function delRow(rid) {
+    const tr = document.getElementById(`row_${rid}`);
+    if (tr) tr.remove();
+    updateRowNumbers();
+    recalcTotals();
+}
+
+// ─────────────────────────────────────────────
+// إعادة ترقيم الصفوف
+// ─────────────────────────────────────────────
+function updateRowNumbers() {
+    const rows = document.querySelectorAll('#tableBody tr');
+    rows.forEach((tr, i) => {
+        const numCell = tr.querySelector('.cell-num');
+        if (numCell) numCell.textContent = i + 1;
+    });
+}
+
+// ─────────────────────────────────────────────
+// Tab في آخر سطر يضيف صفاً جديداً
+// ─────────────────────────────────────────────
+function handleTabOnLast(event, rid) {
+    if (event.key === 'Tab') {
+        const rows = document.querySelectorAll('#tableBody tr');
+        const lastRow = rows[rows.length - 1];
+        if (lastRow && lastRow.id === `row_${rid}`) {
+            event.preventDefault();
+            addRow();
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+// جلب بيانات المنتج من السيرفر
+// ─────────────────────────────────────────────
+async function fetchProduct(input, rid) {
+    const number = input.value.trim();
+    const nfBadge = document.getElementById(`nf_${rid}`);
+    nfBadge.style.display = 'none';
+    if (!number) return;
+
+    // ── منع تكرار رقم الصنف ──
+    if (isDuplicateNumber(number, rid)) {
+        nfBadge.textContent = '⚠️ مضاف مسبقاً';
+        nfBadge.style.display = 'block';
+        nfBadge.style.color = '#f59e0b';
+        input.value = '';
+        input.style.borderBottom = '2px solid #f59e0b';
+        input.style.background   = '#fffbeb';
+        input.focus();
+        return;
+    }
+    nfBadge.textContent = '❌ غير موجود';
+    nfBadge.style.color = '#dc2626';
+
+    try {
+        const resp = await fetch(`/api/invoice/product/?number=${encodeURIComponent(number)}`);
+        const data = await resp.json();
+        if (data.success) {
+            const p = data.product;
+            document.getElementById(`name_${rid}`).value  = p.name;
+            document.getElementById(`price_${rid}`).value = p.price.toFixed(2);
+            document.getElementById(`qty_${rid}`).value   = 12;
+            // عمود الكمية المتوفرة
+            const stockEl = document.getElementById(`stock_${rid}`);
+            if (stockEl) {
+                stockEl.value = p.quantity_in_stock;
+                stockEl.dataset.max = p.quantity_in_stock;
+                updateStockColor(rid);
+            }
+            calcLineTotal(rid);
+        } else {
+            document.getElementById(`name_${rid}`).value        = '';
+            document.getElementById(`price_${rid}`).value       = 0;
+            document.getElementById(`linetotal_${rid}`).value   = 0;
+            const stockEl = document.getElementById(`stock_${rid}`);
+            if (stockEl) { stockEl.value = '—'; stockEl.dataset.max = ''; }
+            nfBadge.style.display = 'block';
+            recalcTotals();
+        }
+    } catch (e) {
+        console.error('خطأ في جلب المنتج:', e);
+    }
+}
+
+function onNumberInput(input, rid) {
+    document.getElementById(`nf_${rid}`).style.display = 'none';
+    // إزالة تلوين التكرار عند الكتابة
+    input.style.borderBottom = '';
+    input.style.background   = '';
+}
+
+// التحقق من تكرار رقم الصنف في الصفوف الأخرى
+function isDuplicateNumber(number, currentRid) {
+    const num = number.trim().toUpperCase();
+    if (!num) return false;
+    let found = false;
+    document.querySelectorAll('#tableBody tr').forEach(tr => {
+        if (tr.dataset.rid == currentRid) return;
+        const inp = tr.querySelector('.number-input');
+        if (inp && inp.value.trim().toUpperCase() === num) found = true;
+    });
+    return found;
+}
+
+// ─────────────────────────────────────────────
+// حساب إجمالي السطر عند تغيير الكمية
+// ─────────────────────────────────────────────
+function onQtyChange(rid) {
+    updateStockColor(rid);
+    calcLineTotal(rid);
+}
+
+function updateStockColor(rid) {
+    const stockEl = document.getElementById(`stock_${rid}`);
+    const qtyEl   = document.getElementById(`qty_${rid}`);
+    if (!stockEl || !qtyEl) return;
+    const maxQty = parseInt(stockEl.dataset.max, 10);
+    const reqQty = parseInt(qtyEl.value, 10) || 0;
+    if (isNaN(maxQty)) return;
+    if (reqQty > maxQty) {
+        stockEl.style.background = '#fef2f2';
+        stockEl.style.borderColor = '#fca5a5';
+        stockEl.style.color = '#dc2626';
+        qtyEl.style.borderColor = '#f87171';
+        qtyEl.style.background  = '#fef2f2';
+    } else {
+        stockEl.style.background = '#f0f9ff';
+        stockEl.style.borderColor = '#bae6fd';
+        stockEl.style.color = '#0369a1';
+        qtyEl.style.borderColor = '';
+        qtyEl.style.background  = '';
+    }
+}
+
+function calcLineTotal(rid) {
+    const price = parseFloat(document.getElementById(`price_${rid}`).value) || 0;
+    const qty   = parseFloat(document.getElementById(`qty_${rid}`).value) || 0;
+    // السعر الأصلي = سعر الدرزن (12 حبة)، فسعر الوحدة = price / 12
+    const unitPrice = price / 12;
+    const total = unitPrice * qty;
+    document.getElementById(`linetotal_${rid}`).value = total.toFixed(2);
+    recalcTotals();
+}
+
+// ─────────────────────────────────────────────
+// إعادة حساب الإجماليات
+// ─────────────────────────────────────────────
+function recalcTotals() {
+    // جمع إجماليات الصفوف
+    let subtotal = 0;
+    document.querySelectorAll('[id^="linetotal_"]').forEach(el => {
+        subtotal += parseFloat(el.value) || 0;
+    });
+
+    const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+
+    let taxAmount = 0;
+    let afterTax = subtotal;
+    if (taxApplied) {
+        taxAmount = subtotal * 0.15;
+        afterTax  = subtotal + taxAmount;
+    }
+    const finalTotal = Math.max(0, afterTax - discount);
+
+    // تحديث الواجهة
+    document.getElementById('sumSubtotal').textContent  = subtotal.toFixed(2);
+    document.getElementById('sumTax').textContent       = taxAmount.toFixed(2);
+    document.getElementById('sumAfterTax').textContent  = afterTax.toFixed(2);
+    document.getElementById('sumDiscount').textContent  = discount.toFixed(2);
+    document.getElementById('sumTotal').textContent     = finalTotal.toFixed(2);
+
+    // النص العربي
+    const arabicText = numberToArabicText(Math.floor(finalTotal));
+    document.getElementById('totalTextDisplay').textContent = arabicText;
+}
+
+// ─────────────────────────────────────────────
+// الضريبة: تفعيل / تعطيل
+// ─────────────────────────────────────────────
+function setTax(enable) {
+    taxApplied = enable;
+    document.getElementById('btnNoTax').classList.toggle('active', !enable);
+    document.getElementById('btnWithTax').classList.toggle('active', enable);
+    document.getElementById('taxRow').style.display     = enable ? '' : 'none';
+    document.getElementById('afterTaxRow').style.display = enable ? '' : 'none';
+    recalcTotals();
+}
+
+// ─────────────────────────────────────────────
+// حفظ الفاتورة
+// ─────────────────────────────────────────────
+async function saveInvoice() {
+    const products = [];
+    const rows = document.querySelectorAll('#tableBody tr');
+    rows.forEach(tr => {
+        const rid = tr.dataset.rid;
+        if (!rid) return;
+        const number = tr.querySelector('.number-input')?.value.trim();
+        if (!number) return;
+        products.push({
+            number,
+            name:     document.getElementById(`name_${rid}`)?.value || '',
+            price:    parseFloat(document.getElementById(`price_${rid}`)?.value) || 0,
+            qty:      parseFloat(document.getElementById(`qty_${rid}`)?.value) || 0,
+            total:    parseFloat(document.getElementById(`linetotal_${rid}`)?.value) || 0,
+            notes:    document.getElementById(`notes_${rid}`)?.value || '',
+        });
+    });
+
+    if (products.length === 0) {
+        showToast('⚠️ يجب إضافة منتج واحد على الأقل', '#f59e0b');
+        return;
+    }
+
+    // ── التحقق من الحقول المطلوبة ──
+    const requiredFields = [
+        { id: 'custName',    label: 'المطلوب من المكرم' },
+        { id: 'custPhone',   label: 'التليفون' },
+        { id: 'custAddress', label: 'العنوان' },
+        { id: 'custIssuer',  label: 'المخرج' },
+    ];
+    let firstError = null;
+    requiredFields.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (!el) return;
+        if (!el.value.trim()) {
+            el.classList.add('req-error');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (!firstError) firstError = f.label;
+        } else {
+            el.classList.remove('req-error');
+        }
+    });
+    if (firstError) {
+        showToast(`⚠️ حقل "${firstError}" مطلوب`, '#ef4444');
+        return;
+    }
+    requiredFields.forEach(f => document.getElementById(f.id)?.classList.remove('req-error'));
+
+    // ── التحقق من الكميات قبل الإرسال ──
+    const rows2 = document.querySelectorAll('#tableBody tr');
+    let qtyError = null;
+    rows2.forEach(tr => {
+        const rid = tr.dataset.rid;
+        if (!rid) return;
+        const stockEl = document.getElementById(`stock_${rid}`);
+        const qtyEl   = document.getElementById(`qty_${rid}`);
+        const numEl   = tr.querySelector('.number-input');
+        if (!stockEl || !qtyEl || !numEl?.value.trim()) return;
+        const maxQty = parseInt(stockEl.dataset.max, 10);
+        const reqQty = parseInt(qtyEl.value, 10) || 0;
+        if (!isNaN(maxQty) && reqQty > maxQty) {
+            qtyError = `المنتج "${numEl.value.trim()}" — الكمية المطلوبة (${reqQty}) أكبر من المتوفرة (${maxQty})`;
+        }
+    });
+    if (qtyError) {
+        showToast('⚠️ ' + qtyError, '#ef4444');
+        return;
+    }
+
+    const subtotal  = parseFloat(document.getElementById('sumSubtotal').textContent) || 0;
+    const taxAmount = parseFloat(document.getElementById('sumTax').textContent) || 0;
+    const discount  = parseFloat(document.getElementById('discountInput').value) || 0;
+    const total     = parseFloat(document.getElementById('sumTotal').textContent) || 0;
+    const totalText = document.getElementById('totalTextDisplay').textContent;
+
+    const payload = {
+        invoice_number:  INVOICE_NUMBER,
+        customer_name:   document.getElementById('custName').value,
+        customer_phone:  document.getElementById('custPhone').value,
+        customer_address:document.getElementById('custAddress').value,
+        issuer:          document.getElementById('custIssuer').value,
+        products,
+        subtotal,
+        tax_applied: taxApplied,
+        tax_amount:  taxAmount,
+        discount,
+        total,
+        total_text:  totalText,
+        invoice_date: document.getElementById('invDateG').value,
+        hijri_date:   document.getElementById('invDateH').value,
+    };
+
+    try {
+        const resp = await fetch('/api/invoice/save/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken()},
+            body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            clearDraft(); // مسح المسودة بعد الحفظ الناجح
+            showToast('✅ ' + data.message, '#10b981');
+            // إخفاء عمود الكمية المتوفرة بعد الحفظ الناجح
+            document.querySelectorAll('[id^="stock_"]').forEach(el => {
+                el.closest('td')?.style.setProperty('display', 'none');
+            });
+            const hdr = document.getElementById('stockHeader');
+            if (hdr) hdr.style.display = 'none';
+            // تعطيل زر الحفظ
+            const saveBtn = document.querySelector('.btn-save');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = '✅ محفوظة'; saveBtn.style.background = '#64748b'; }
+        } else {
+            showToast('❌ ' + data.error, '#ef4444');
+        }
+    } catch (e) {
+        showToast('❌ خطأ في الاتصال بالخادم', '#ef4444');
+    }
+}
+
+// ─────────────────────────────────────────────
+// إشعار صغير
+// ─────────────────────────────────────────────
+function showToast(msg, color = '#10b981') {
+    const t = document.getElementById('saveToast');
+    t.textContent = msg;
+    t.style.background = color;
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+
+// ─────────────────────────────────────────────
+// قراءة CSRF token من DOM (لأن CSRF_COOKIE_HTTPONLY=True)
+// ─────────────────────────────────────────────
+function getCsrfToken() {
+    return document.querySelector('#csrfForm [name=csrfmiddlewaretoken]')?.value || '';
+}
+
+// ─────────────────────────────────────────────
+// تحويل الرقم إلى نص عربي
+// ─────────────────────────────────────────────
+function numberToArabicText(n) {
+    n = Math.floor(n);
+    if (n === 0) return 'صفر ريال فقط لا غير';
+    if (n < 0)   return 'رقم غير صحيح';
+
+    const ones = [
+        '', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة',
+        'عشرة', 'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر',
+        'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'
+    ];
+    const tens = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+    const hundreds = ['', 'مئة', 'مئتان', 'ثلاثمئة', 'أربعمئة', 'خمسمئة', 'ستمئة', 'سبعمئة', 'ثمانمئة', 'تسعمئة'];
+
+    function below1000(num) {
+        if (num === 0) return '';
+        let result = '';
+        if (num >= 100) {
+            result += hundreds[Math.floor(num / 100)];
+            num %= 100;
+            if (num > 0) result += ' و';
+        }
+        if (num >= 20) {
+            result += ' ' + tens[Math.floor(num / 10)];
+            if (num % 10 > 0) result += ' و' + ones[num % 10];
+        } else if (num > 0) {
+            result += ' ' + ones[num];
+        }
+        return result.trim();
+    }
+
+    let parts = [];
+    if (n >= 1000000) {
+        const m = Math.floor(n / 1000000);
+        parts.push(m === 1 ? 'مليون' : m === 2 ? 'مليونان' : below1000(m) + (m <= 10 ? ' ملايين' : ' مليون'));
+        n %= 1000000;
+    }
+    if (n >= 1000) {
+        const k = Math.floor(n / 1000);
+        parts.push(k === 1 ? 'ألف' : k === 2 ? 'ألفان' : below1000(k) + (k <= 10 ? ' آلاف' : ' ألف'));
+        n %= 1000;
+    }
+    if (n > 0) {
+        parts.push(below1000(n));
+    }
+    return parts.join(' و') + ' ريال فقط لا غير';
+}
+
+// ═══════════════════════════════════════════════
+// حفظ تلقائي كمسودة في localStorage
+// ═══════════════════════════════════════════════
+const DRAFT_KEY = 'invoice_draft_{{ next_invoice_number }}';
+let draftTimer = null;
+
+function collectDraft() {
+    const rows = [];
+    document.querySelectorAll('#tableBody tr').forEach(tr => {
+        const rid = tr.dataset.rid;
+        if (!rid) return;
+        const num = tr.querySelector('.number-input')?.value.trim();
+        rows.push({
+            number: num || '',
+            name:   document.getElementById(`name_${rid}`)?.value || '',
+            price:  document.getElementById(`price_${rid}`)?.value || '0',
+            qty:    document.getElementById(`qty_${rid}`)?.value || '12',
+            total:  document.getElementById(`linetotal_${rid}`)?.value || '0',
+            notes:  document.getElementById(`notes_${rid}`)?.value || '',
+            stock:  document.getElementById(`stock_${rid}`)?.value || '',
+            stockMax: document.getElementById(`stock_${rid}`)?.dataset.max || '',
+        });
+    });
+    return {
+        customer_name:    document.getElementById('custName')?.value || '',
+        customer_phone:   document.getElementById('custPhone')?.value || '',
+        customer_address: document.getElementById('custAddress')?.value || '',
+        issuer:           document.getElementById('custIssuer')?.value || '',
+        invoice_date:     document.getElementById('invDateG')?.value || '',
+        hijri_date:       document.getElementById('invDateH')?.value || '',
+        tax_applied:      taxApplied,
+        discount:         document.getElementById('discountInput')?.value || '0',
+        rows,
+        saved_at:         new Date().toLocaleString('ar-SA'),
+    };
+}
+
+function saveDraft() {
+    try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+        const ind = document.getElementById('draftIndicator');
+        if (ind) { ind.textContent = '💾 مسودة محفوظة'; ind.style.opacity = '1'; setTimeout(() => { ind.style.opacity = '0'; }, 2000); }
+    } catch (e) {}
+}
+
+function scheduleDraft() {
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 1200);
+}
+
+function loadDraft() {
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const d = JSON.parse(raw);
+
+        // تحقق هل هناك بيانات تستحق التحميل
+        const hasData = d.customer_name || d.customer_phone || (d.rows && d.rows.some(r => r.number));
+        if (!hasData) return;
+
+        const confirmed = confirm(`📝 تم العثور على مسودة محفوظة (${d.saved_at})\nهل تريد استعادتها؟`);
+        if (!confirmed) { localStorage.removeItem(DRAFT_KEY); return; }
+
+        // بيانات العميل
+        if (d.customer_name)    document.getElementById('custName').value    = d.customer_name;
+        if (d.customer_phone)   document.getElementById('custPhone').value   = d.customer_phone;
+        if (d.customer_address) document.getElementById('custAddress').value = d.customer_address;
+        if (d.issuer)           document.getElementById('custIssuer').value  = d.issuer;
+        if (d.invoice_date)     document.getElementById('invDateG').value    = d.invoice_date;
+        if (d.hijri_date)       document.getElementById('invDateH').value    = d.hijri_date;
+        if (d.discount)         document.getElementById('discountInput').value = d.discount;
+
+        // الضريبة
+        setTax(d.tax_applied || false);
+
+        // الصفوف — امسح السطر الأول الفارغ ثم أعد البناء
+        document.getElementById('tableBody').innerHTML = '';
+        rowCount = 0;
+
+        (d.rows || []).forEach(row => {
+            addRow(); // يزيد rowCount ويضيف tr
+            const rid = rowCount;
+            const numInp = document.querySelector(`#row_${rid} .number-input`);
+            if (numInp) numInp.value = row.number;
+            if (document.getElementById(`name_${rid}`))      document.getElementById(`name_${rid}`).value = row.name;
+            if (document.getElementById(`price_${rid}`))     document.getElementById(`price_${rid}`).value = row.price;
+            if (document.getElementById(`qty_${rid}`))       document.getElementById(`qty_${rid}`).value = row.qty;
+            if (document.getElementById(`notes_${rid}`))     document.getElementById(`notes_${rid}`).value = row.notes;
+            const stockEl = document.getElementById(`stock_${rid}`);
+            if (stockEl && row.stock) { stockEl.value = row.stock; stockEl.dataset.max = row.stockMax || ''; }
+            calcLineTotal(rid);
+        });
+
+        recalcTotals();
+        showToast('✅ تم استعادة المسودة المحفوظة', '#4f46e5');
+    } catch (e) { localStorage.removeItem(DRAFT_KEY); }
+}
+
+function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+}
+
+// تفعيل الحفظ التلقائي عند أي تغيير
+document.addEventListener('input',  scheduleDraft);
+document.addEventListener('change', scheduleDraft);
+</script>
+</body>
+</html>

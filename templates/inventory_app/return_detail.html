@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل المرتجع - {{ return.return_number }}</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    
+    <style>
+        .return-detail-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .return-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .return-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+        
+        .return-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .meta-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .meta-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .meta-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .products-table th {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .products-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .products-table tr:hover {
+            background: #f8fafc;
+        }
+        
+        .products-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .quantity-before {
+            color: #64748b;
+        }
+        
+        .quantity-returned {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .quantity-after {
+            color: #059669;
+            font-weight: bold;
+        }
+        
+        .action-buttons {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .info-box {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-right: 4px solid #10b981;
+        }
+        
+        .info-box h4 {
+            margin: 0 0 10px 0;
+            color: #1e293b;
+        }
+        
+        .info-box p {
+            margin: 5px 0;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header" style="margin-bottom: 30px;">
+            <h1>📋 تفاصيل المرتجع</h1>
+            <div>
+                <a href="{% url 'inventory_app:returns_list' %}" class="btn btn-secondary">
+                    <span class="btn-icon">📋</span>
+                    قائمة المرتجعات
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    <span class="btn-icon">🏠</span>
+                    الرئيسية
+                </a>
+            </div>
+        </div>
+        
+        <div class="return-detail-container">
+            <div class="return-header">
+                <div class="return-number">#{{ return.return_number }}</div>
+                <div class="return-meta">
+                    <div class="meta-item">
+                        <div class="meta-label">📅 التاريخ والوقت</div>
+                        <div class="meta-value">{{ return.created_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">👤 المستخدم</div>
+                        <div class="meta-value">{{ return.user }}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">📦 عدد المنتجات</div>
+                        <div class="meta-value">{{ return.total_products }}</div>
+                    </div>
+                    <div class="meta-item">
+                        <div class="meta-label">📊 إجمالي الكميات</div>
+                        <div class="meta-value">{{ return.total_quantities }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if return.returned_by or return.return_reason or return.notes %}
+            <div class="info-box">
+                {% if return.returned_by %}
+                <p><strong>👤 اسم المرسل:</strong> {{ return.returned_by }}</p>
+                {% endif %}
+                {% if return.return_reason %}
+                <p><strong>📝 سبب الإرجاع:</strong> {{ return.return_reason }}</p>
+                {% endif %}
+                {% if return.notes %}
+                <h4>💬 الملاحظات:</h4>
+                <p>{{ return.notes }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div>
+                <h3 style="margin-bottom: 15px;">📦 المنتجات المرتجعة:</h3>
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>رقم المنتج</th>
+                            <th>اسم المنتج</th>
+                            <th>الكمية قبل</th>
+                            <th>الكمية المرتجعة</th>
+                            <th>الكمية بعد</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in return.products_data %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td><strong style="font-family: monospace;">{{ product.product_number }}</strong></td>
+                            <td>{{ product.product_name|default:"-" }}</td>
+                            <td class="quantity-before">{{ product.quantity_before|default:"-" }}</td>
+                            <td class="quantity-returned">+{{ product.quantity_returned }}</td>
+                            <td class="quantity-after">{{ product.quantity_after|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr style="background: #f8fafc; font-weight: bold;">
+                            <td colspan="3" style="text-align: left;">الإجمالي:</td>
+                            <td>-</td>
+                            <td class="quantity-returned">{{ return.total_quantities }}</td>
+                            <td>-</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="action-buttons">
+                <a href="{% url 'inventory_app:returns_list' %}" class="btn btn-secondary">
+                    <span class="btn-icon">⬅️</span>
+                    العودة للقائمة
+                </a>
+                <a href="{% url 'inventory_app:add_return' %}" class="btn btn-primary">
+                    <span class="btn-icon">➕</span>
+                    إضافة مرتجع جديد
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    <div id="sidebar-overlay"></div>
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="{% url 'inventory_app:orders_list' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجل الطلبات</span>
+                </a>
+                <a href="{% url 'inventory_app:returns_list' %}" class="sidebar-link active">
+                    <span class="icon">🔄</span>
+                    <span class="text">المرتجعات</span>
+                </a>
+                <a href="{% url 'inventory_app:audit_logs' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+</body>
+</html>
+

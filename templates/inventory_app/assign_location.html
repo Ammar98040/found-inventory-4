@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ربط منتج بموقع - {{ product.product_number }}</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
+    <link rel="stylesheet" href="{% static 'css/warehouse_management.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <style>
+        .warehouse-grid-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 20px;
+        }
+        
+        .warehouse-grid {
+            display: grid;
+            gap: 5px;
+            max-height: 600px;
+            overflow: auto;
+            padding: 10px;
+        }
+        
+        .grid-row {
+            display: grid;
+            gap: 5px;
+        }
+        
+        .grid-cell {
+            aspect-ratio: 1;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .grid-cell:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        
+        .grid-cell-header {
+            background: #667eea;
+            color: white;
+            border-color: #5a67d8;
+            font-weight: bold;
+        }
+        
+        .grid-cell.selected {
+            background: #10b981;
+            color: white;
+            border-color: #059669;
+        }
+        
+        .grid-cell.current-product {
+            background: #dcfce7;
+            border-color: #10b981;
+        }
+        
+        .location-checkbox {
+            display: none;
+        }
+        
+        .warehouse-info-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .warehouse-info-header h3 {
+            margin: 0 0 10px;
+        }
+        .product-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="margin-bottom: 30px;">
+            <h1>📍 ربط منتج بموقع</h1>
+        </div>
+
+        <div class="product-info">
+            <h2 style="margin: 0;">{{ product.product_number }}</h2>
+            <p style="margin: 5px 0 0; opacity: 0.9;">{{ product.name }}</p>
+        </div>
+
+        <div class="warehouse-info-header">
+            <h3>📊 معلومات الشبكة</h3>
+            <p style="margin: 0; opacity: 0.9;">
+                <strong>{{ warehouse.rows_count }}</strong> صف × <strong>{{ warehouse.columns_count }}</strong> عمود = 
+                <strong>{{ all_locations|length }}</strong> موقع
+            </p>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-lg);">
+            <h3 style="margin-bottom: 20px;">اختر الموقع:</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                يمكنك اختيار موقع واحد فقط للمنتج. المواقع <span style="color: #10b981; font-weight: bold;">الخضراء</span> فارغة، والمواقع <span style="color: #f59e0b; font-weight: bold;">الصفراء</span> شاغرة.
+            </p>
+            
+            <form method="POST" id="location-form">
+                {% csrf_token %}
+                
+                <div class="warehouse-grid-container">
+                    <h3 style="margin-bottom: 20px; text-align: center;">📍 اختر المواقع من الشبكة</h3>
+                    
+                    <div class="warehouse-grid-wrapper" style="width: 100%; overflow: auto; max-height: 70vh; border: 2px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                        <div id="warehouse-grid" data-rows="{{ warehouse.rows_count }}" data-columns="{{ warehouse.columns_count }}" style="display: flex; flex-direction: column; gap: 0;">
+                            <!-- سيتم إنشاء الشبكة عبر JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="locations-data" style="display:none;">
+                    {% for location in all_locations %}
+                        <div class="location-item" 
+                             data-id="{{ location.id }}" 
+                             data-row="{{ location.row }}" 
+                             data-column="{{ location.column }}" 
+                             data-full="{{ location.full_location }}" 
+                             data-current="{% if current_location and location.id == current_location.id %}true{% else %}false{% endif %}" 
+                             data-occupied="{% if location.id in occupied_locations %}true{% else %}false{% endif %}"></div>
+                    {% endfor %}
+                </div>
+                
+                <script>
+                    // إنشاء الشبكة ديناميكياً
+                    const warehouseGrid = document.getElementById('warehouse-grid');
+                    const rows = parseInt(warehouseGrid.dataset.rows);
+                    const columns = parseInt(warehouseGrid.dataset.columns);
+                    const locations = Array.from(document.querySelectorAll('#locations-data .location-item')).map(function(el){
+                        return {
+                            id: parseInt(el.dataset.id),
+                            row: parseInt(el.dataset.row),
+                            column: parseInt(el.dataset.column),
+                            full_location: el.dataset.full,
+                            is_current: el.dataset.current === 'true',
+                            is_occupied: el.dataset.occupied === 'true'
+                        };
+                    });
+                    
+                    // إنشاء رأس الأعمدة
+                    const headerRow = document.createElement('div');
+                    headerRow.style.display = 'flex';
+                    const emptyCell = document.createElement('div');
+                    emptyCell.className = 'grid-cell grid-cell-header';
+                    emptyCell.style.width = '50px';
+                    emptyCell.style.height = '50px';
+                    headerRow.appendChild(emptyCell);
+                    
+                    for (let col = 1; col <= columns; col++) {
+                        const headerCell = document.createElement('div');
+                        headerCell.className = 'grid-cell grid-cell-header';
+                        headerCell.style.width = '50px';
+                        headerCell.style.height = '50px';
+                        headerCell.textContent = col;
+                        headerRow.appendChild(headerCell);
+                    }
+                    warehouseGrid.appendChild(headerRow);
+                    
+                    // إنشاء الصفوف
+                    for (let row = 1; row <= rows; row++) {
+                        const rowDiv = document.createElement('div');
+                        rowDiv.style.display = 'flex';
+                        
+                        // رأس الصف
+                        const rowHeader = document.createElement('div');
+                        rowHeader.className = 'grid-cell grid-cell-header';
+                        rowHeader.style.width = '50px';
+                        rowHeader.style.height = '50px';
+                        rowHeader.textContent = row;
+                        rowDiv.appendChild(rowHeader);
+                        
+                        // الخلايا
+                        for (let col = 1; col <= columns; col++) {
+                            const location = locations.find(loc => loc.row === row && loc.column === col);
+                            
+                            if (location) {
+                                const cell = document.createElement('label');
+                                const isRadio = document.createElement('input');
+                                isRadio.type = 'radio';
+                                isRadio.name = 'location';
+                                isRadio.value = location.id;
+                                isRadio.id = 'loc-' + location.id;
+                                
+                                cell.setAttribute('for', 'loc-' + location.id);
+                                cell.className = 'grid-cell';
+                                cell.style.width = '50px';
+                                cell.style.height = '50px';
+                                cell.style.cursor = 'pointer';
+                                // عرض رقم الموقع في الأسطر الأولى
+                                cell.innerHTML = '<div style="font-size: 0.65rem; font-weight: bold;">' + location.full_location + '</div>';
+                                
+                                // تلوين الخلايا حسب الحالة
+                                if (location.is_current) {
+                                    cell.style.background = '#3b82f6';
+                                    cell.style.color = 'white';
+                                    cell.style.borderColor = '#2563eb';
+                                    isRadio.checked = true;
+                                } else if (location.is_occupied) {
+                                    cell.style.background = '#fef3c7';
+                                    cell.style.borderColor = '#f59e0b';
+                                    cell.title = 'موقع مشغول';
+                                    cell.style.cursor = 'not-allowed';
+                                    isRadio.disabled = true;
+                                } else {
+                                    cell.style.background = '#dcfce7';
+                                    cell.style.borderColor = '#10b981';
+                                    cell.title = 'موقع فارغ';
+                                }
+                                
+                                isRadio.className = 'location-checkbox';
+                                isRadio.style.display = 'none';
+                                
+                                cell.onclick = function() {
+                                    if (!location.is_occupied) {
+                                        isRadio.checked = !isRadio.checked;
+                                        if (isRadio.checked) {
+                                            cell.style.background = '#3b82f6';
+                                            cell.style.color = 'white';
+                                            cell.style.borderColor = '#2563eb';
+                                        } else {
+                                            cell.style.background = '#dcfce7';
+                                            cell.style.color = 'inherit';
+                                            cell.style.borderColor = '#10b981';
+                                        }
+                                    }
+                                };
+                                
+                                document.getElementById('location-form').appendChild(isRadio);
+                                rowDiv.appendChild(cell);
+                            } else {
+                                const emptyCell = document.createElement('div');
+                                emptyCell.className = 'grid-cell';
+                                emptyCell.style.width = '50px';
+                                emptyCell.style.height = '50px';
+                                emptyCell.textContent = '-';
+                                rowDiv.appendChild(emptyCell);
+                            }
+                        }
+                        
+                        warehouseGrid.appendChild(rowDiv);
+                    }
+                </script>
+
+                <div class="header-actions" style="margin-top: 20px;">
+                    <button type="submit" class="btn btn--sm btn--primary">
+                        <span class="icon">✓</span>
+                        <span>حفظ الربط</span>
+                    </button>
+                    <a href="/products/{{ product.id }}/" class="btn btn--sm btn--neutral">
+                        <span class="icon">←</span>
+                        <span>العودة</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="/audit-logs/" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    <script src="{% static 'js/quick_search.js' %}"></script>
+
+</body>
+</html>
+

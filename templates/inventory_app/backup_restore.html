@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>النسخ الاحتياطي والاستعادة</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
+    <style>
+        .backup-section {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 30px;
+        }
+        .backup-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-item {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-right: 3px solid #667eea;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .action-card {
+            padding: 25px;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        .action-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+        .action-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+        .upload-area:hover {
+            border-color: var(--primary-color);
+            background: #f1f5f9;
+        }
+        .upload-area.dragover {
+            border-color: var(--primary-color);
+            background: #eef2ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="backup-header">
+            <h1>💾 النسخ الاحتياطي والاستعادة</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">احفظ واستعد بياناتك بأمان تام</p>
+        </div>
+
+        <!-- إحصائيات البيانات -->
+        <div class="backup-section">
+            <h2 style="margin-bottom: 20px; color: var(--primary-color);">📊 إحصائيات البيانات الحالية (شامل)</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">المستودعات</div>
+                    <div class="stat-value">{{ stats.warehouses }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">الأماكن</div>
+                    <div class="stat-value">{{ stats.locations }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">المنتجات</div>
+                    <div class="stat-value">{{ stats.products }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">سجلات العمليات</div>
+                    <div class="stat-value">{{ stats.audit_logs }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">الطلبات</div>
+                    <div class="stat-value">{{ stats.orders }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">المرتجعات</div>
+                    <div class="stat-value">{{ stats.returns }}</div>
+                </div>
+                
+                <div class="stat-item">
+                    <div class="stat-label">ملفات المستخدمين</div>
+                    <div class="stat-value">{{ stats.user_profiles }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">سجلات أنشطة المستخدمين</div>
+                    <div class="stat-value">{{ stats.user_activity_logs }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تصدير النسخ الاحتياطي -->
+        <div class="backup-section">
+            <div class="action-card">
+                <div class="action-icon">📤</div>
+                <h3 style="margin-bottom: 15px;">تصدير النسخ الاحتياطي الشامل</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    قم بتنزيل نسخة احتياطية <strong>شاملة وكاملة</strong> من جميع بيانات النظام، تشمل:
+                    <br>• جميع المنتجات والأماكن والمستودعات
+                    <br>• جميع العمليات (إضافة، تعديل، حذف، سحب، إرجاع)
+                    <br>• جميع الطلبات والمرتجعات
+                    <br>• جميع سجلات أنشطة المستخدمين
+                    <br>• جميع ملفات المستخدمين
+                    <br><br>يمكنك استخدام هذا الملف لاستعادة البيانات الكاملة لاحقاً.
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="exportBackup()" class="btn btn--sm btn--success">
+                        <span class="icon">📥</span>
+                        <span>تحميل النسخ الاحتياطي (JSON)</span>
+                    </button>
+                    <button onclick="exportBackupFull()" class="btn btn--sm btn--primary">
+                        <span class="icon">📦</span>
+                        <span>تحميل نسخة كاملة (مع الصور - ZIP)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- استيراد النسخ الاحتياطي -->
+        <div class="backup-section">
+            <div class="action-card">
+                <div class="action-icon">📥</div>
+                <h3 style="margin-bottom: 15px;">استيراد النسخ الاحتياطي</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    قم بتحميل ملف النسخ الاحتياطي لاستعادة البيانات السابقة.
+                </p>
+                <!-- سيتم الاستيراد تلقائياً لكل الأقسام الموجودة في الملف بعد الرفع -->
+                
+                <div class="upload-area" id="upload-area" onclick="document.getElementById('backup-file-input').click()">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">📁</div>
+                    <div style="font-weight: bold; margin-bottom: 10px;">انقر لاختيار الملف أو اسحب الملف هنا</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem;">الملفات المدعومة: .json أو .zip (نسخة مع الصور)</div>
+                </div>
+                
+                <input type="file" id="backup-file-input" accept=".json,.zip" style="display: none;" onchange="handleFileSelect(this)">
+                
+                <div style="margin-top: 20px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="clear-existing" style="width: 18px; height: 18px;">
+                        <span>حذف البيانات الموجودة قبل الاستيراد</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-top:8px;">
+                        <input type="checkbox" id="avoid-duplicates" style="width: 18px; height: 18px;" checked>
+                        <span>منع التكرار: تحديث المنتجات الموجودة وتخطي المكررة</span>
+                    </label>
+                    <button class="btn btn--sm btn--danger" style="margin-top:10px;" onclick="resetEnvironment()">
+                        <span class="icon">🗑️</span>
+                        <span>تهيئة بيئة نظيفة (حذف كل البيانات)</span>
+                    </button>
+                </div>
+
+                <div id="sections-container" style="margin-top: 15px; display:none;"></div>
+                
+                <button onclick="importBackup()" class="btn btn--sm btn--success" style="margin-top: 15px; display:none;" id="import-btn" disabled>
+                    <span class="icon">🔄</span>
+                    <span>استيراد النسخ الاحتياطي</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- معلومات مهمة -->
+        <div class="backup-section" style="background: #fef3c7; border-right: 4px solid #f59e0b;">
+            <h3 style="color: #92400e; margin-bottom: 15px;">⚠️ معلومات مهمة</h3>
+            <ul style="color: #78350f; line-height: 1.8;">
+                <li>يُنصح بعمل نسخة احتياطية بانتظام لحماية بياناتك</li>
+                <li>يحتفظ ملف النسخ الاحتياطي بجميع البيانات: المستودعات، الأماكن، المنتجات، والسجلات</li>
+                <li><strong>للحصول على الصور:</strong> استخدم "تحميل نسخة كاملة (مع الصور - ZIP)" ثم استورد ملف الـ ZIP</li>
+                <li>عند الاستيراد مع "حذف البيانات الموجودة"، سيتم محو جميع البيانات الحالية</li>
+                <li>احتفظ بملفات النسخ الاحتياطي في مكان آمن</li>
+                <li>تأكد من صحة ملف النسخ الاحتياطي قبل الاستيراد</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="/audit-logs/" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link active">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/merge-files/" class="sidebar-link">
+                    <span class="icon">🧩</span>
+                    <span class="text">دمج الملفات</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+                <a href="/inventory-insights/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">توصيات المخزون</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    
+    <script>
+        let selectedFile = null;
+        
+        // دالة مساعدة للحصول على CSRF token (يعمل مع CSRF_COOKIE_HTTPONLY=True)
+        function getCsrfToken() {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta && meta.getAttribute('content')) return meta.getAttribute('content');
+            const input = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (input && input.value) return input.value;
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, 10) === 'csrftoken=') {
+                        cookieValue = decodeURIComponent(cookie.substring(10));
+                        break;
+                    }
+                }
+            }
+            return cookieValue || '';
+        }
+
+        function exportBackup() {
+            if (!confirm('هل تريد تحميل النسخ الاحتياطي؟')) {
+                return;
+            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/export-backup/';
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = 'csrfmiddlewaretoken';
+            token.value = getCsrfToken();
+            form.appendChild(token);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function exportBackupFull() {
+            if (!confirm('هل تريد تحميل النسخة الاحتياطية الكاملة (مع الصور)؟ قد يستغرق التحميل وقتاً أطول.')) {
+                return;
+            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/api/export-backup-full/';
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = 'csrfmiddlewaretoken';
+            token.value = getCsrfToken();
+            form.appendChild(token);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                selectedFile = input.files[0];
+                
+                // عرض اسم الملف
+                const uploadArea = document.getElementById('upload-area');
+                uploadArea.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 10px;">📦</div>
+                    <div style="font-weight: bold; color: #0ea5e9;">${selectedFile.name}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 5px;">${(selectedFile.size / 1024).toFixed(2)} KB</div>
+                    <div style="margin-top:10px; color:#6b7280;">يتم الاستيراد تلقائياً الآن...</div>
+                `;
+                document.getElementById('import-btn').disabled = false;
+                importBackup();
+                return;
+                
+                // قراءة ومعاينة محتوى النسخة لعرض الأقسام
+                const reader = new FileReader();
+                reader.onload = function() {
+                    try {
+                        let text = reader.result;
+                        if (text && text.charCodeAt(0) === 0xFEFF) {
+                            text = text.slice(1);
+                        }
+                        const data = JSON.parse(text);
+                        const availableKeys = Object.keys(data).filter(k => Array.isArray(data[k]));
+                        const keyLabels = {
+                            warehouses: 'المستودعات',
+                            locations: 'الأماكن',
+                            containers: 'الحاويات',
+                            products: 'المنتجات',
+                            users: 'المستخدمون',
+                            orders: 'الطلبات',
+                            returns: 'المرتجعات',
+                            audit_logs: 'سجلات العمليات',
+                            user_profiles: 'ملفات المستخدمين',
+                            user_activity_logs: 'سجلات أنشطة المستخدمين'
+                        };
+                        let html = '<div style="margin-top:10px; font-weight:bold;">اختر الأقسام المراد استعادتها:</div>';
+                        html += '<div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; margin-top:10px;">';
+                        availableKeys.forEach(k => {
+                            const label = keyLabels[k] || k;
+                            const count = Array.isArray(data[k]) ? data[k].length : 0;
+                            const preChecked = Array.from(document.querySelectorAll('.pre-section-checkbox')).some(cb => cb.value === k && cb.checked);
+                            const checked = preChecked;
+                            html += `
+                                <label style="display:flex; align-items:center; gap:8px;">
+                                    <input type="checkbox" class="section-checkbox" value="${k}" ${checked ? 'checked' : ''}>
+                                    <span>${label} (<span style="color:#6b7280;">${count}</span>)</span>
+                                </label>
+                            `;
+                        });
+                        html += '</div>';
+                        document.getElementById('sections-container').innerHTML = html;
+                        document.getElementById('import-btn').disabled = false;
+                        const csrftoken = getCsrfToken();
+                        const fd = new FormData();
+                        fd.append('backup_file', selectedFile);
+                        if (csrftoken) fd.append('csrfmiddlewaretoken', csrftoken);
+                                    fetch('/api/inspect-backup/', {
+                                        method: 'POST',
+                                        body: fd,
+                                        credentials: 'same-origin',
+                                        headers: {
+                                            'X-CSRFToken': csrftoken,
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'Accept': 'application/json'
+                                        }
+                                    })
+                          .then(r => r.json())
+                          .then(info => {
+                            if (!info.success) {
+                              document.getElementById('sections-container').innerHTML = `<div style="color:#b91c1c;">❌ ${info.error || 'فشل التحليل'}</div>`;
+                              document.getElementById('import-btn').disabled = true;
+                              return;
+                            }
+                            let meta = '';
+                            if (info.parse_meta) {
+                              const enc = info.parse_meta.encoding || 'غير معروف';
+                              const src = info.parse_meta.source || 'raw';
+                              const fixes = (info.parse_meta.fixes||[]).join(', ');
+                              meta = `<div style="margin-top:8px; color:#6b7280; font-size:0.9rem;">الترميز: <strong>${enc}</strong> | المصدر: ${src} | إصلاحات: ${fixes}</div>`;
+                            }
+                            let extra = '';
+                            if (info.product_duplicates && info.product_duplicates.length) {
+                              extra += '<div style="margin-top:10px; background:#fff7ed; border-right:4px solid #f59e0b; padding:8px; border-radius:6px;">';
+                              extra += '<div style="color:#92400e; font-weight:bold; margin-bottom:6px;">تعارض أرقام المنتجات الموجودة:</div>';
+                              extra += '<ul style="color:#78350f;">';
+                              info.product_duplicates.slice(0,20).forEach(row => {
+                                extra += `<li>${row.product_number} → موجود بالنظام (${row.existing_name||'بدون اسم'})، مكرر بالملف ${row.count_in_backup} مرة</li>`;
+                              });
+                              extra += '</ul></div>';
+                            }
+                            if (extra || meta) {
+                              document.getElementById('sections-container').innerHTML += meta + extra;
+                            }
+                          })
+                          .catch(()=>{});
+                    } catch (e) {
+                        try {
+                            // محاولة قراءة كـ ArrayBuffer ثم فك ترميز UTF-8 يدوياً
+                            const reader2 = new FileReader();
+                            reader2.onload = function() {
+                                try {
+                                    const decoder = new TextDecoder('utf-8');
+                                    let text2 = decoder.decode(reader2.result);
+                                    if (text2 && text2.charCodeAt(0) === 0xFEFF) {
+                                        text2 = text2.slice(1);
+                                    }
+                                    const data2 = JSON.parse(text2);
+                                    const availableKeys = Object.keys(data2).filter(k => Array.isArray(data2[k]));
+                                    const keyLabels = {
+                                        warehouses: 'المستودعات',
+                                        locations: 'الأماكن',
+                                        containers: 'الحاويات',
+                                        products: 'المنتجات',
+                                        users: 'المستخدمون',
+                                        orders: 'الطلبات',
+                                        returns: 'المرتجعات',
+                                        audit_logs: 'سجلات العمليات',
+                                        user_profiles: 'ملفات المستخدمين',
+                                        user_activity_logs: 'سجلات أنشطة المستخدمين'
+                                    };
+                                    let html = '<div style="margin-top:10px; font-weight:bold;">اختر الأقسام المراد استعادتها:</div>';
+                                    html += '<div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px; margin-top:10px;">';
+                                    availableKeys.forEach(k => {
+                                        const label = keyLabels[k] || k;
+                                        const count = Array.isArray(data2[k]) ? data2[k].length : 0;
+                                        const checked = (k === 'warehouses' || k === 'locations' || k === 'products' || k === 'orders' || k === 'audit_logs' || k === 'returns');
+                                        html += `
+                                            <label style="display:flex; align-items:center; gap:8px;">
+                                                <input type="checkbox" class="section-checkbox" value="${k}" ${checked ? 'checked' : ''}>
+                                                <span>${label} (<span style="color:#6b7280;">${count}</span>)</span>
+                                            </label>
+                                        `;
+                                    });
+                                    html += '</div>';
+                                    document.getElementById('sections-container').innerHTML = html;
+                                    document.getElementById('import-btn').disabled = false;
+                                    const csrftoken = getCsrfToken();
+                                    const fd = new FormData();
+                                    fd.append('backup_file', selectedFile);
+                                    if (csrftoken) fd.append('csrfmiddlewaretoken', csrftoken);
+                                    fetch('/api/inspect-backup/', {
+                                        method: 'POST',
+                                        body: fd,
+                                        credentials: 'same-origin',
+                                        headers: {
+                                            'X-CSRFToken': csrftoken,
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'Accept': 'application/json'
+                                        }
+                                    })
+                                      .then(r => r.json())
+                                      .then(info => {
+                                        if (!info.success) {
+                                          document.getElementById('sections-container').innerHTML = `<div style=\"color:#b91c1c;\">❌ ${info.error || 'فشل التحليل'}</div>`;
+                                          document.getElementById('import-btn').disabled = true;
+                                          return;
+                                        }
+                                        let meta = '';
+                                        if (info.parse_meta) {
+                                          const enc = info.parse_meta.encoding || 'غير معروف';
+                                          const src = info.parse_meta.source || 'raw';
+                                          const fixes = (info.parse_meta.fixes||[]).join(', ');
+                                          meta = `<div style=\"margin-top:8px; color:#6b7280; font-size:0.9rem;\">الترميز: <strong>${enc}</strong> | المصدر: ${src} | إصلاحات: ${fixes}</div>`;
+                                        }
+                                        let extra = '';
+                                        if (info.product_duplicates && info.product_duplicates.length) {
+                                          extra += '<div style="margin-top:10px; background:#fff7ed; border-right:4px solid #f59e0b; padding:8px; border-radius:6px;">';
+                                          extra += '<div style="color:#92400e; font-weight:bold; margin-bottom:6px;">تعارض أرقام المنتجات الموجودة:</div>';
+                                          extra += '<ul style="color:#78350f;">';
+                                          info.product_duplicates.slice(0,20).forEach(row => {
+                                            extra += `<li>${row.product_number} → موجود بالنظام (${row.existing_name||'بدون اسم'})، مكرر بالملف ${row.count_in_backup} مرة</li>`;
+                                          });
+                                          extra += '</ul></div>';
+                                        }
+                                        if (extra || meta) {
+                                          document.getElementById('sections-container').innerHTML += meta + extra;
+                                        }
+                                      })
+                                      .catch(()=>{});
+                                } catch (e2) {
+                                    document.getElementById('sections-container').innerHTML = '<div style="color:#b91c1c;">تعذر معاينة الملف، سيتم تحليل الملف على الخادم</div>';
+                                    document.getElementById('import-btn').disabled = false;
+                                    const csrftoken = getCsrfToken();
+                                    const fd = new FormData();
+                                    fd.append('backup_file', selectedFile);
+                                    if (csrftoken) fd.append('csrfmiddlewaretoken', csrftoken);
+                                    fetch('/api/inspect-backup/', {
+                                        method: 'POST',
+                                        body: fd,
+                                        credentials: 'same-origin',
+                                        headers: {
+                                            'X-CSRFToken': csrftoken,
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                            'Accept': 'application/json'
+                                        }
+                                    })
+                                      .then(r => r.json())
+                                      .then(info => {
+                                        if (!info.success) return;
+                                        let extra = '';
+                                        if (info.product_duplicates && info.product_duplicates.length) {
+                                          extra += '<div style="margin-top:10px; background:#fff7ed; border-right:4px solid #f59e0b; padding:8px; border-radius:6px;">';
+                                          extra += '<div style="color:#92400e; font-weight:bold; margin-bottom:6px;">تعارض أرقام المنتجات الموجودة:</div>';
+                                          extra += '<ul style="color:#78350f;">';
+                                          info.product_duplicates.slice(0,20).forEach(row => {
+                                            extra += `<li>${row.product_number} → موجود بالنظام (${row.existing_name||'بدون اسم'})، مكرر بالملف ${row.count_in_backup} مرة</li>`;
+                                          });
+                                          extra += '</ul></div>';
+                                        }
+                                        if (extra) {
+                                          document.getElementById('sections-container').innerHTML += extra;
+                                        }
+                                      })
+                                      .catch(()=>{});
+                                }
+                            };
+                            reader2.readAsArrayBuffer(selectedFile);
+                        } catch (e3) {
+                            document.getElementById('sections-container').innerHTML = '<div style="color:#b91c1c;">تعذر معاينة الملف، سيتم تحليل الملف على الخادم</div>';
+                            document.getElementById('import-btn').disabled = false;
+                            const fd = new FormData();
+                            fd.append('backup_file', selectedFile);
+                            const csrftoken = getCsrfToken();
+                            if (csrftoken) fd.append('csrfmiddlewaretoken', csrftoken);
+                            fetch('/api/inspect-backup/', { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrftoken || '', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+                              .then(r => r.json())
+                              .then(info => {
+                                if (!info.success) {
+                                  document.getElementById('sections-container').innerHTML = `<div style=\"color:#b91c1c;\">❌ ${info.error || 'فشل التحليل'}</div>`;
+                                  document.getElementById('import-btn').disabled = true;
+                                  return;
+                                }
+                                let meta = '';
+                                if (info.parse_meta) {
+                                  const enc = info.parse_meta.encoding || 'غير معروف';
+                                  const src = info.parse_meta.source || 'raw';
+                                  const fixes = (info.parse_meta.fixes||[]).join(', ');
+                                  meta = `<div style=\"margin-top:8px; color:#6b7280; font-size:0.9rem;\">الترميز: <strong>${enc}</strong> | المصدر: ${src} | إصلاحات: ${fixes}</div>`;
+                                }
+                                let extra = '';
+                                if (info.product_duplicates && info.product_duplicates.length) {
+                                  extra += '<div style="margin-top:10px; background:#fff7ed; border-right:4px solid #f59e0b; padding:8px; border-radius:6px;">';
+                                  extra += '<div style="color:#92400e; font-weight:bold; margin-bottom:6px;">تعارض أرقام المنتجات الموجودة:</div>';
+                                  extra += '<ul style="color:#78350f;">';
+                                  info.product_duplicates.slice(0,20).forEach(row => {
+                                    extra += `<li>${row.product_number} → موجود بالنظام (${row.existing_name||'بدون اسم'})، مكرر بالملف ${row.count_in_backup} مرة</li>`;
+                                  });
+                                  extra += '</ul></div>';
+                                }
+                                if (extra || meta) {
+                                  document.getElementById('sections-container').innerHTML += meta + extra;
+                                }
+                              })
+                              .catch(()=>{});
+                        }
+                    }
+                };
+                reader.readAsText(selectedFile);
+            }
+        }
+
+        function importBackup() {
+            if (!selectedFile) {
+                alert('يرجى اختيار ملف النسخ الاحتياطي');
+                return;
+            }
+            
+            const clearExisting = document.getElementById('clear-existing').checked;
+            
+            const formData = new FormData();
+            formData.append('backup_file', selectedFile);
+            formData.append('clear_existing', clearExisting);
+            const csrftoken = getCsrfToken();
+            if (csrftoken) formData.append('csrfmiddlewaretoken', csrftoken);
+            const avoidDuplicates = document.getElementById('avoid-duplicates').checked;
+            formData.append('avoid_duplicates', avoidDuplicates);
+            const selectedSections = Array.from(document.querySelectorAll('.section-checkbox'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            if (selectedSections.length === 0) {
+                const preSelected = Array.from(document.querySelectorAll('.pre-section-checkbox'))
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+                preSelected.length > 0 && formData.append('selected_sections', JSON.stringify(preSelected));
+            } else {
+                const preSelected = Array.from(document.querySelectorAll('.pre-section-checkbox'))
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value);
+                const finalSelected = preSelected.length > 0 ? selectedSections.filter(k => preSelected.includes(k)) : selectedSections;
+                formData.append('selected_sections', JSON.stringify(finalSelected));
+            }
+            
+            fetch('/api/import-backup/', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(async (response) => {
+                if (response.status === 401) {
+                    const d = await response.json().catch(() => ({}));
+                    window.location.href = d.redirect || '/login/?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+                if (response.redirected || (response.status >= 300 && response.status < 400)) {
+                    throw new Error('تسجيل الدخول مطلوب - يرجى تحديث الصفحة والمحاولة مرة أخرى');
+                }
+                const ct = response.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    const txt = await response.text();
+                    const msg = txt.startsWith('<!DOCTYPE') ? 'فشل التحقق (CSRF/الجلسة) - يرجى تحديث الصفحة وتسجيل الدخول من جديد' : (txt || 'استجابة غير صالحة');
+                    throw new Error(msg);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return;
+                if (data.success) {
+                    const imported = data.imported ? JSON.stringify(data.imported) : '';
+                    alert('✅ ' + data.message + (imported ? '\n' + imported : ''));
+                    window.location.reload();
+                } else {
+                    const details = Array.isArray(data.details) ? '\n- ' + data.details.slice(0,10).join('\n- ') : '';
+                    alert('❌ ' + (data.error || 'فشل الاستيراد') + details);
+                }
+            })
+            .catch(error => {
+                alert('❌ حدث خطأ: ' + error.message);
+            });
+        }
+
+        function resetEnvironment() {
+            if (!confirm('⚠️ سيتم حذف جميع البيانات الحالية وإعداد بيئة نظيفة. هل أنت متأكد؟')) return;
+            const csrftoken = getCsrfToken();
+            
+            fetch('/api/reset-environment/', { 
+                method: 'POST', 
+                credentials: 'same-origin',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+              .then(async (response) => {
+                if (response.status === 401) {
+                    const d = await response.json().catch(() => ({}));
+                    window.location.href = d.redirect || '/login/?next=' + encodeURIComponent(window.location.pathname);
+                    return;
+                }
+                const ct = response.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    const txt = await response.text();
+                    throw new Error(txt || 'استجابة غير صالحة');
+                }
+                return response.json();
+              })
+              .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    window.location.reload();
+                } else {
+                    alert('❌ ' + (data.error || 'فشل التهيئة'));
+                }
+              })
+              .catch(err => alert('❌ حدث خطأ: ' + err.message));
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('backup-file-input').files = files;
+                handleFileSelect(document.getElementById('backup-file-input'));
+            }
+        });
+    </script>
+</body>
+</html>

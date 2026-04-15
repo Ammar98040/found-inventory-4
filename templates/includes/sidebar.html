@@ -1,0 +1,195 @@
+<!-- Sidebar -->
+<button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+
+<div id="sidebar-overlay"></div>
+
+<div id="main-sidebar">
+    <div class="sidebar-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="/static/img/favicon.svg" alt="شعار" style="width: 32px; height: 32px;">
+            <div>
+                <h2 style="font-size: 1.1rem; margin-bottom: 2px;">نظام إدارة المخزون</h2>
+            </div>
+        </div>
+        <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+    </div>
+    
+    <!-- حقل البحث -->
+    <div class="sidebar-search">
+        <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+        <div id="sidebar-search-results"></div>
+    </div>
+    
+    <div class="sidebar-content" id="sidebar-main-content">
+        <!-- الرئيسية -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">الرئيسية</div>
+            <a href="{% url 'inventory_app:home' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:home' %}active{% endif %}">
+                <span class="icon">🔍</span>
+                <span class="text">البحث عن المنتجات</span>
+            </a>
+            <a href="{% url 'inventory_app:dashboard' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:dashboard' %}active{% endif %}">
+                <span class="icon">📊</span>
+                <span class="text">لوحة التحكم</span>
+            </a>
+            {% if user.is_superuser or user.userprofile.user_type == 'admin' %}
+            <a href="{% url 'inventory_app:admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:admin_dashboard' %}active{% endif %}">
+                <span class="icon">🎛️</span>
+                <span class="text">لوحة المسؤول</span>
+            </a>
+            {% endif %}
+        </div>
+        
+        <!-- إدارة المنتجات -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">إدارة المنتجات</div>
+            <a href="{% url 'inventory_app:products_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:products_list' %}active{% endif %}">
+                <span class="icon">📦</span>
+                <span class="text">قائمة المنتجات</span>
+            </a>
+            <a href="{% url 'inventory_app:product_add' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:product_add' %}active{% endif %}">
+                <span class="icon">➕</span>
+                <span class="text">إضافة منتج جديد</span>
+            </a>
+        </div>
+        
+        <!-- المستودع -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">المستودع</div>
+            <a href="{% url 'inventory_app:manage_warehouse' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:manage_warehouse' %}active{% endif %}">
+                <span class="icon">⚙️</span>
+                <span class="text">إدارة المستودع</span>
+            </a>
+            <a href="{% url 'inventory_app:locations_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:locations_list' %}active{% endif %}">
+                <span class="icon">📍</span>
+                <span class="text">الأماكن</span>
+            </a>
+        </div>
+
+        <!-- إدارة المستخدمين (Admin Only) -->
+        {% if user.is_superuser or user.userprofile.user_type == 'admin' %}
+        <div class="sidebar-section">
+            <div class="sidebar-title">إدارة المستخدمين</div>
+            <a href="{% url 'inventory_app:register_staff' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:register_staff' %}active{% endif %}">
+                <span class="icon">👤</span>
+                <span class="text">إنشاء حساب موظف</span>
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- السجلات -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">السجلات</div>
+            <a href="{% url 'inventory_app:orders_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:orders_list' %}active{% endif %}">
+                <span class="icon">📋</span>
+                <span class="text">سجل الطلبات</span>
+            </a>
+            <a href="{% url 'inventory_app:returns_list' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:returns_list' %}active{% endif %}">
+                <span class="icon">🔄</span>
+                <span class="text">المرتجعات</span>
+            </a>
+            <a href="{% url 'inventory_app:audit_logs' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:audit_logs' %}active{% endif %}">
+                <span class="icon">📋</span>
+                <span class="text">سجلات العمليات</span>
+            </a>
+        </div>
+        
+        <!-- الصيانة -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">الصيانة</div>
+            <a href="{% url 'inventory_app:backup_restore' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:backup_restore' %}active{% endif %}">
+                <span class="icon">💾</span>
+                <span class="text">النسخ الاحتياطي</span>
+            </a>
+            <a href="{% url 'inventory_app:data_deletion' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:data_deletion' %}active{% endif %}">
+                <span class="icon">🗑️</span>
+                <span class="text">حذف البيانات</span>
+            </a>
+            <a href="{% url 'inventory_app:data_quality' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:data_quality' %}active{% endif %}">
+                <span class="icon">🛠️</span>
+                <span class="text">جودة البيانات</span>
+            </a>
+            <a href="{% url 'inventory_app:inventory_insights' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:inventory_insights' %}active{% endif %}">
+                <span class="icon">📦</span>
+                <span class="text">توصيات المخزون</span>
+            </a>
+        </div>
+
+        <!-- الحساب -->
+        {% if user.is_authenticated %}
+        <div class="sidebar-section">
+            <div class="sidebar-title">الحساب</div>
+            <a href="{% url 'inventory_app:user_profile' %}" class="sidebar-link {% if request.resolver_match.view_name == 'inventory_app:user_profile' %}active{% endif %}">
+                <span class="icon">👤</span>
+                <span class="text">الملف الشخصي</span>
+            </a>
+            <a href="{% url 'logout' %}" class="sidebar-link">
+                <span class="icon">🚪</span>
+                <span class="text">تسجيل الخروج</span>
+            </a>
+        </div>
+        {% endif %}
+        
+        <!-- الإحصائيات الحية -->
+        <div class="sidebar-section">
+            <div class="sidebar-title">الإحصائيات الحية</div>
+            <div class="stats-container">
+                <!-- المنتجات -->
+                <div class="stat-category">
+                    <div class="stat-category-title">📦 المنتجات</div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-products">-</div>
+                            <div class="stat-label">إجمالي</div>
+                        </div>
+                    </div>
+                    <div class="stat-item mini">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-products-with-locations">-</div>
+                            <div class="stat-label">لها موقع</div>
+                        </div>
+                    </div>
+                    <div class="stat-item mini">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-products-without-locations">-</div>
+                            <div class="stat-label">بدون موقع</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- الأماكن -->
+                <div class="stat-category">
+                    <div class="stat-category-title">📍 الأماكن</div>
+                    <div class="stat-item">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-capacity">-</div>
+                            <div class="stat-label">السعة الإجمالية</div>
+                        </div>
+                    </div>
+                    <div class="stat-item mini">
+                        <div class="stat-icon">🟢</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-occupied">-</div>
+                            <div class="stat-label">مشغولة</div>
+                        </div>
+                    </div>
+                    <div class="stat-item mini">
+                        <div class="stat-icon">⚪</div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="stats-empty">-</div>
+                            <div class="stat-label">فارغة</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                    🟢 Live Mode - تحديث كل 15 ثانية
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المستودع - البحث عن المنتجات</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/search_grid.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/quick_search.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    
+</head>
+<style>
+    /* أنيميشن شعار قلب العرب */
+    .org-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        padding: 30px;
+        border-radius: 20px;
+        margin-bottom: 30px;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        animation: slideDown 1s ease-out;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .org-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: rotate 10s linear infinite;
+    }
+    
+    @keyframes rotate {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .org-logo {
+        font-size: 80px;
+        display: inline-block;
+        animation: heartPulse 2s infinite;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 10px 20px rgba(255, 255, 255, 0.3));
+    }
+    
+    @keyframes heartPulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        25% {
+            transform: scale(1.1) rotate(-5deg);
+        }
+        50% {
+            transform: scale(0.95) rotate(5deg);
+        }
+        75% {
+            transform: scale(1.05) rotate(-3deg);
+        }
+    }
+    
+    .org-name {
+        font-size: 42px;
+        font-weight: bold;
+        color: white;
+        margin-bottom: 10px;
+        text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        position: relative;
+        z-index: 2;
+        animation: textGlow 3s infinite;
+    }
+    
+    @keyframes textGlow {
+        0%, 100% {
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        50% {
+            text-shadow: 0 5px 25px rgba(255, 255, 255, 0.5);
+        }
+    }
+    
+    .org-subtitle {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9);
+        position: relative;
+        z-index: 2;
+        font-weight: 300;
+    }
+    
+    /* أزهار متحركة */
+    .floating-flowers {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
+    
+    .flower {
+        position: absolute;
+        font-size: 20px;
+        opacity: 0.5;
+        animation: floatFlower 15s infinite;
+    }
+    
+    @keyframes floatFlower {
+        0% {
+            transform: translateY(100px) rotate(0deg);
+            opacity: 0;
+        }
+        10% {
+            opacity: 0.5;
+        }
+        90% {
+            opacity: 0.5;
+        }
+        100% {
+            transform: translateY(-100px) rotate(360deg);
+            opacity: 0;
+        }
+    }
+    
+    /* زر تسجيل الخروج */
+    .logout-btn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        z-index: 10;
+    }
+    
+    .logout-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* معلومات المستخدم 3D */
+    .user-info-3d {
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        position: relative;
+        z-index: 2;
+        flex-wrap: wrap;
+    }
+    
+    .user-badge {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 16px;
+        color: white;
+        text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        animation: badgePulse 3s infinite;
+        transform-style: preserve-3d;
+        transition: all 0.3s ease;
+    }
+    
+    .admin-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .staff-badge {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .user-badge:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    
+    @keyframes badgePulse {
+        0%, 100% {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        50% {
+            box-shadow: 0 4px 25px rgba(255, 255, 255, 0.4);
+        }
+    }
+    
+    .user-name {
+        display: inline-block;
+        padding: 10px 25px;
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transform-style: preserve-3d;
+        transition: all 0.3s ease;
+        text-shadow: none;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    .user-name:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 1);
+    }
+    
+    @keyframes userInfoSlide {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .user-info-3d {
+        animation: userInfoSlide 0.8s ease-out 0.5s both;
+    }
+    
+    /* تحسين عرض الأمثلة */
+    .hint {
+        display: block;
+        margin-top: 10px;
+        padding: 15px;
+        background: #f0f9ff;
+        border-right: 4px solid #3b82f6;
+        border-radius: 8px;
+        line-height: 1.8;
+        color: #1e40af;
+    }
+    
+    .hint code {
+        background: #dbeafe;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #1e3a8a;
+        font-size: 0.95em;
+    }
+    
+    .hint strong {
+        color: #1e40af;
+        font-weight: 700;
+    }
+    
+    /* زر استعادة البيانات */
+    .btn-restore {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .btn-restore:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+    
+    .btn-restore:active {
+        transform: translateY(0);
+    }
+    
+    /* حالة الحفظ التلقائي */
+    #auto-save-status {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-5px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    .btn-restore {
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-weight: 600;
+    }
+    .input-group label {
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+        display: block;
+    }
+    #recipient-name {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+    }
+    #recipient-name:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.15);
+    }
+    .actions-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 8px;
+    }
+    @media (max-width: 768px) {
+        .actions-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .actions-row a.btn {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+        .btn-restore {
+            width: 100%;
+        }
+    }
+</style>
+
+<body>
+    <div class="container">
+        <!-- شعار القلب العرب مع أنيميشن -->
+        <div class="org-header">
+            <a href="/logout/" class="logout-btn">🚪 تسجيل الخروج</a>
+            
+            <div class="floating-flowers">
+                <div class="flower" style="left: 10%; animation-delay: 0s;">🌸</div>
+                <div class="flower" style="left: 30%; animation-delay: 2s;">🌺</div>
+                <div class="flower" style="left: 50%; animation-delay: 4s;">🌻</div>
+                <div class="flower" style="left: 70%; animation-delay: 6s;">🌷</div>
+                <div class="flower" style="left: 90%; animation-delay: 8s;">🌼</div>
+            </div>
+            
+            <div class="org-logo">❤️</div>
+            <div class="org-name">قلب العرب</div>
+            <div class="org-subtitle">نظام إدارة المخزون المتقدم</div>
+            <div class="user-info-3d">
+                {% if user_type_display == 'مسؤول' %}
+                    <span class="user-badge admin-badge">🎛️ مسؤول</span>
+                {% else %}
+                    <span class="user-badge staff-badge">👤 موظف</span>
+                {% endif %}
+                <span class="user-name">{{ user.username }}</span>
+            </div>
+        </div>
+        
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1>🔍 نظام إدارة المستودع</h1>
+            </div>
+            <p class="subtitle">ابحث عن المنتجات بسرعة من خلال أرقامها</p>
+        </header>
+
+        <!-- خيار الإدخال -->
+        <div style="display:flex; gap:16px; margin-bottom:28px; flex-wrap:wrap;">
+            <div id="mode-manual" onclick="setMode('manual')" style="flex:1; min-width:220px; background:linear-gradient(135deg,#667eea,#764ba2); border-radius:18px; padding:26px 22px; cursor:pointer; color:#fff; box-shadow:0 6px 24px rgba(102,126,234,0.35); transition:all .3s; border:3px solid #764ba2; text-align:center;">
+                <div style="font-size:40px; margin-bottom:10px;">📝</div>
+                <div style="font-size:20px; font-weight:800; margin-bottom:6px;">إدخال يدوي</div>
+                <div style="font-size:13px; opacity:.88;">أدخل أرقام المنتجات والكميات يدوياً وابحث في المستودع</div>
+            </div>
+            <a href="{% url 'inventory_app:create_invoice' %}" style="flex:1; min-width:220px; background:linear-gradient(135deg,#f093fb,#f5576c); border-radius:18px; padding:26px 22px; cursor:pointer; color:#fff; box-shadow:0 6px 24px rgba(245,87,108,0.35); transition:all .3s; border:3px solid transparent; text-align:center; text-decoration:none; display:block;">
+                <div style="font-size:40px; margin-bottom:10px;">🧾</div>
+                <div style="font-size:20px; font-weight:800; margin-bottom:6px;">إنشاء فاتورة</div>
+                <div style="font-size:13px; opacity:.88;">أنشئ فاتورة عرض أسعار رسمية مع حسابات الضريبة والخصم</div>
+            </a>
+        </div>
+
+        <div class="main-content">
+            <!-- قسم الإدخال -->
+            <div class="input-section">
+                <div class="input-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                        <label for="product-numbers">أدخل أرقام المنتجات (سطر واحد لكل منتج)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span id="auto-save-status" style="font-size: 0.85rem; color: #10b981; display: none;">
+                                ✓ تم الحفظ
+                            </span>
+                            <button type="button" id="restore-btn" class="btn-restore" style="display: none;" title="استعادة آخر إدخال محفوظ" aria-label="استعادة البيانات">
+                                <span>📋</span> استعادة البيانات
+                            </button>
+                            <button type="button" id="upload-image-btn" class="btn-restore" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); margin-left: 10px;" title="رفع صورة فاتورة">
+                                <span>📷</span> رفع صورة
+                            </button>
+                            <input type="file" id="image-upload" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                    <textarea 
+                        id="product-numbers" 
+                        placeholder="أمثلة:&#10;#200*20&#10;A400*5&#10;980*12&#10;(يدعم أرقام/حروف/رموز مع كمية بعد *)" 
+                        rows="10"
+                        autofocus
+                    ></textarea>
+                    <div id="last-saved-info" style="font-size: 0.8rem; color: #64748b; margin-top: 5px; display: none;">
+                        آخر حفظ: <span id="last-saved-time"></span>
+                    </div>
+                    <small class="hint">
+                        <strong>القاعدة:</strong> أي معرف منتج (أرقام/حروف/رموز) مع إمكانية تحديد الكمية باستخدام <code>*</code><br>
+                        <strong>أمثلة:</strong><br>
+                        • <code>#200*20</code><br>
+                        • <code>A400*5</code><br>
+                        • <code>980*12</code>
+                    </small>
+                </div>
+                <div class="input-group">
+                    <label for="recipient-name">اسم المستلم <span style="color:#ef4444; font-weight:900;">*</span></label>
+                    <input id="recipient-name" type="text" placeholder="اكتب اسم المستلم هنا" />
+                </div>
+                <div class="actions-row">
+                    <button id="search-btn" class="btn btn-primary">
+                        <span class="btn-icon">🔍</span>
+                        بحث
+                    </button>
+                    <button id="clear-btn" class="btn btn-secondary">
+                        <span class="btn-icon">🗑️</span>
+                        مسح
+                    </button>
+                    <a href="/orders/" class="btn btn-primary" style="background: #667eea; text-decoration: none; text-align: center; display: flex; justify-content: center;">
+                        <span class="btn-icon">📋</span>
+                        سجل الطلبات
+                    </a>
+                </div>
+            </div>
+
+            <!-- قسم النتائج -->
+            <div id="results-section" class="results-section" style="display: none;">
+                <div class="results-header">
+                    <h2>📦 نتائج البحث</h2>
+                    <div class="results-actions">
+                        <span id="results-count" class="badge"></span>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-right: 15px;">
+                            <label class="select-all-container" style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #e0e7ff; padding: 6px 12px; border-radius: 6px; user-select: none;">
+                                <input type="checkbox" id="select-all-btn" style="width: 18px; height: 18px; cursor: pointer;">
+                                <span style="font-weight: 600; color: #3730a3; font-size: 0.9rem;">تحديد الكل</span>
+                            </label>
+                        </div>
+                        <div class="action-buttons">
+                            <button onclick="exportToPDF()" class="btn btn-pdf" id="pdf-btn">
+                                📄 PDF
+                            </button>
+                            <button onclick="printLocations()" class="btn btn-print" id="print-btn">
+                                🖨️ طباعة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="results-container"></div>
+            </div>
+
+            <!-- قسم رؤية المستودع -->
+            <div id="warehouse-view" class="warehouse-view" style="display: none;">
+                <h2 style="margin-bottom: 20px;">🏢 عرض المستودع</h2>
+                <div class="warehouse-grid-wrapper" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <div id="warehouse-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- رسائل الحالة -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>جاري البحث...</p>
+        </div>
+
+        <div id="error-message" class="alert alert-error" style="display: none;"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <img src="{% static 'img/favicon.svg' %}" alt="شعار" style="width: 32px; height: 32px;">
+                <div>
+                    <h2 style="font-size: 1.1rem; margin-bottom: 2px;">قلب العرب</h2>
+                    <div style="font-size: 0.75rem; color: #9ca3af; font-weight: normal;">نظام إدارة المخزون</div>
+                </div>
+            </div>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="{% url 'inventory_app:home' %}" class="sidebar-link active">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="{% url 'inventory_app:dashboard' %}" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+                {% if user_type_display == 'مسؤول' %}
+                <a href="{% url 'inventory_app:admin_dashboard' %}" class="sidebar-link">
+                    <span class="icon">🎛️</span>
+                    <span class="text">لوحة المسؤول</span>
+                </a>
+                {% else %}
+                <a href="{% url 'inventory_app:staff_dashboard' %}" class="sidebar-link">
+                    <span class="icon">👤</span>
+                    <span class="text">لوحة الموظف</span>
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="{% url 'inventory_app:products_list' %}" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="{% url 'inventory_app:product_add' %}" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="{% url 'inventory_app:manage_warehouse' %}" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="{% url 'inventory_app:locations_list' %}" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            {% if user_type_display == 'مسؤول' %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المستخدمين</div>
+                <a href="{% url 'inventory_app:register_staff' %}" class="sidebar-link">
+                    <span class="icon">👤</span>
+                    <span class="text">إنشاء حساب موظف</span>
+                </a>
+            </div>
+            {% else %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">حسابي</div>
+                <a href="{% url 'inventory_app:user_profile' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">الملف الشخصي</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="{% url 'inventory_app:orders_list' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجل الطلبات</span>
+                </a>
+                <a href="{% url 'inventory_app:returns_list' %}" class="sidebar-link">
+                    <span class="icon">🔄</span>
+                    <span class="text">المرتجعات</span>
+                </a>
+                <a href="{% url 'inventory_app:audit_logs' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            {% if user_type_display == 'مسؤول' %}
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="{% url 'inventory_app:backup_restore' %}" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="{% url 'inventory_app:data_deletion' %}" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+                <a href="{% url 'inventory_app:data_quality' %}" class="sidebar-link">
+                    <span class="icon">🛠️</span>
+                    <span class="text">جودة البيانات</span>
+                </a>
+                <a href="{% url 'inventory_app:inventory_insights' %}" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">توصيات المخزون</span>
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة البحث السريع -->
+    <div id="quick-search-overlay">
+        <div id="quick-search-modal">
+            <div id="quick-search-header">
+                <h2>🔍 البحث السريع</h2>
+            </div>
+            
+            <div id="quick-search-input-container">
+                <input 
+                    type="text" 
+                    id="quick-search-input" 
+                    placeholder="ابحث عن منتجات أو مواقع..." 
+                    autocomplete="off"
+                />
+            </div>
+            
+            <div id="quick-search-results"></div>
+            
+            <div id="quick-search-shortcuts">
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">↑</kbd>
+                    <kbd class="shortcut-key">↓</kbd>
+                    للتنقل
+                </div>
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">↵</kbd>
+                    لفتح النتيجة
+                </div>
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">Esc</kbd>
+                    للإغلاق
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/sidebar.js' %}?v=2.3"></script>
+    <script src="{% static 'js/notifications.js' %}?v=2.3"></script>
+    <script src="{% static 'js/auto_refresh.js' %}?v=2.3"></script>
+    <script src="{% static 'js/quick_search.js' %}?v=2.3"></script>
+    <script src="{% static 'js/main.js' %}?v=2.6"></script>
+    
+    <script>
+        // عرض إشعارات عند تحميل الصفحة (للاختبار)
+        document.addEventListener('DOMContentLoaded', function() {
+            // إشعار ترحيبي - البحث السريع
+            setTimeout(() => {
+                Notifications.info(
+                    '🔍 نظام البحث السريع',
+                    'اضغط Ctrl+K للبحث',
+                    5000
+                );
+            }, 1000);
+
+
+        });
+        
+        // إشعارات بعد البحث
+        const originalSearchProducts = window.searchProducts;
+        if (originalSearchProducts) {
+            window.searchProducts = async function(...args) {
+                const result = await originalSearchProducts(...args);
+                
+                if (result && result.length > 0) {
+                    Notifications.success(
+                        'تم العثور على نتائج',
+                        `${result.length} منتج موجود`,
+                        3000
+                    );
+                } else {
+                    Notifications.warning(
+                        'لا توجد نتائج',
+                        'جرب البحث بمصطلح آخر',
+                        3000
+                    );
+                }
+                
+                return result;
+            };
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBtn = document.getElementById('upload-image-btn');
+            const fileInput = document.getElementById('image-upload');
+            const productInput = document.getElementById('product-numbers');
+
+            if (uploadBtn && fileInput) {
+                uploadBtn.addEventListener('click', function() {
+                    fileInput.click();
+                });
+
+                fileInput.addEventListener('change', async function(e) {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+                        const formData = new FormData();
+                        formData.append('image', file);
+
+                        // Show loading state
+                        const originalText = uploadBtn.innerHTML;
+                        uploadBtn.innerHTML = '<span>⏳</span> جاري التحليل...';
+                        uploadBtn.disabled = true;
+
+                        try {
+                            const response = await fetch('/api/analyze-image/', {
+                                method: 'POST',
+                                body: formData
+                            });
+
+                            const data = await response.json();
+
+                            if (data.success && data.data) {
+                                // Add analyzed products to the textarea
+                                const products = data.data.products;
+                                let textToAdd = '';
+                                products.forEach(p => {
+                                    textToAdd += `${p.product_number}:${p.quantity}\n`;
+                                });
+
+                                if (productInput.value) {
+                                    productInput.value += '\n' + textToAdd;
+                                } else {
+                                    productInput.value = textToAdd;
+                                }
+                                
+                                // Trigger input event to update UI/Auto-save if exists
+                                productInput.dispatchEvent(new Event('input'));
+
+                                if (window.Notifications) {
+                                    Notifications.success('تم تحليل الصورة بنجاح', `تم استخراج ${products.length} منتج`);
+                                } else {
+                                    alert(`تم تحليل الصورة بنجاح! تم استخراج ${products.length} منتج.`);
+                                }
+                            } else {
+                                const errorMsg = data.error || 'فشل تحليل الصورة';
+                                if (window.Notifications) {
+                                    Notifications.error('خطأ في التحليل', errorMsg);
+                                } else {
+                                    alert('خطأ: ' + errorMsg);
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            if (window.Notifications) {
+                                Notifications.error('خطأ', 'حدث خطأ أثناء الاتصال بالخادم');
+                            } else {
+                                alert('حدث خطأ أثناء الاتصال بالخادم');
+                            }
+                        } finally {
+                            // Reset button state
+                            uploadBtn.innerHTML = originalText;
+                            uploadBtn.disabled = false;
+                            fileInput.value = ''; // Reset file input
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

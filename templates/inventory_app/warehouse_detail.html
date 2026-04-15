@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفاصيل المستودع - {{ warehouse.name }}</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h1>🏢 {{ warehouse.name }}</h1>
+            <a href="/warehouses/" class="btn btn-secondary">← العودة</a>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 12px; color: white; margin-bottom: 30px;">
+            <h2 style="margin: 0; margin-bottom: 20px;">معلومات المستودع</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <div style="opacity: 0.8;">الصفوف</div>
+                    <div style="font-size: 2rem; font-weight: bold;">{{ warehouse.rows_count }}</div>
+                </div>
+                <div>
+                    <div style="opacity: 0.8;">الأعمدة</div>
+                    <div style="font-size: 2rem; font-weight: bold;">{{ warehouse.columns_count }}</div>
+                </div>
+                <div>
+                    <div style="opacity: 0.8;">الأماكن</div>
+                    <div style="font-size: 2rem; font-weight: bold;">{{ locations_count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-lg); margin-bottom: 30px;">
+            <h3 style="margin-bottom: 20px;">الوصف</h3>
+            <p style="color: var(--text-secondary);">
+                {{ warehouse.description|default:"لا يوجد وصف" }}
+            </p>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="/manage/" class="btn btn-primary" style="font-size: 1.1rem; padding: 15px 30px;">
+                ⚙️ إدارة المستودع
+            </a>
+        </div>
+    </div>
+</body>
+</html>
+

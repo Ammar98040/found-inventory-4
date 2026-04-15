@@ -1,0 +1,471 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}لوحة التحكم - Dashboard{% endblock %}
+
+{% block extra_styles %}
+<link rel="stylesheet" href="{% static 'css/quick_search.css' %}">
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 30px 0;
+    }
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 30px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    }
+    .stat-card.products {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .stat-card.locations {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    .stat-card.capacity {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+    .stat-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .stat-label {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+        .stat-card {
+            padding: 20px;
+        }
+        .stat-icon {
+            font-size: 2rem;
+        }
+        .stat-number {
+            font-size: 1.8rem;
+        }
+        .quick-actions {
+            grid-template-columns: 1fr;
+        }
+    }
+    .action-btn {
+        padding: 20px;
+        background: white;
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s;
+        color: var(--text-primary);
+    }
+    .action-btn:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    .action-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+    .low-stock-row { background: #fff5f5; }
+    .badge-critical { background: #ff6b6b; }
+    .badge-low { background: #f59e0b; }
+    .badge-warn { background: #fbbf24; }
+</style>
+{% endblock %}
+
+{% block page_title %}📊 لوحة التحكم{% endblock %}
+
+{% block content %}
+    <!-- إحصائيات -->
+    <div class="dashboard-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🏢</div>
+            <div class="stat-number">{{ warehouse.name|default:"المستودع الرئيسي" }}</div>
+            <div class="stat-label">المستودع</div>
+            <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                {{ warehouse.rows_count }} صف × {{ warehouse.columns_count }} عمود
+            </div>
+        </div>
+
+        <div class="stat-card products">
+            <div class="stat-icon">📦</div>
+            <div class="stat-number">{{ products_count }}</div>
+            <div class="stat-label">المنتجات</div>
+            <a href="{% url 'inventory_app:products_list' %}" style="color: white; text-decoration: underline; display: inline-block; margin-top: 10px;">
+                عرض المنتجات →
+            </a>
+        </div>
+
+        <div class="stat-card locations">
+            <div class="stat-icon">📍</div>
+            <div class="stat-number">{{ locations_count }}</div>
+            <div class="stat-label">الأماكن</div>
+            <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                {{ locations_count }} موقع متاح
+            </div>
+        </div>
+
+        <div class="stat-card capacity">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-number">{{ total_capacity }}</div>
+            <div class="stat-label">السعة الكلية</div>
+            <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                موقع
+            </div>
+        </div>
+    </div>
+
+    <!-- إحصائيات إضافية -->
+    <div class="dashboard-grid" style="margin-top: 20px;">
+        <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="stat-icon">📦</div>
+            <div class="stat-number">{{ containers_count }}</div>
+            <div class="stat-label">الحاويات</div>
+            <a href="{% url 'inventory_app:container_list' %}" style="color: white; text-decoration: underline; display: inline-block; margin-top: 10px;">
+                إدارة الحاويات →
+            </a>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <div class="stat-icon">📋</div>
+            <div class="stat-number">{{ orders_count }}</div>
+            <div class="stat-label">الطلبات المسحوبة</div>
+            <a href="{% url 'inventory_app:orders_list' %}" style="color: white; text-decoration: underline; display: inline-block; margin-top: 10px;">
+                عرض الطلبات →
+            </a>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stat-icon">↩️</div>
+            <div class="stat-number">{{ returns_count }}</div>
+            <div class="stat-label">المرتجعات</div>
+            <a href="{% url 'inventory_app:returns_list' %}" style="color: white; text-decoration: underline; display: inline-block; margin-top: 10px;">
+                عرض المرتجعات →
+            </a>
+        </div>
+
+        <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="stat-icon">📊</div>
+            <div class="stat-number">{{ total_quantity|floatformat:0 }}</div>
+            <div class="stat-label">إجمالي الكمية</div>
+            <div style="margin-top: 15px; font-size: 0.9rem; opacity: 0.8;">
+                حبة في المخزون
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- إجراءات سريعة -->
+    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1); margin-top: 30px;">
+        <h2 style="margin-bottom: 20px;">⚡ إجراءات سريعة</h2>
+        <div class="quick-actions">
+            <a href="{% url 'inventory_app:home' %}" class="action-btn">
+                <span class="action-icon">🔍</span>
+                <strong>البحث عن المنتجات</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    ابحث عن منتجاتك فوراً
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:products_list' %}" class="action-btn">
+                <span class="action-icon">📦</span>
+                <strong>قائمة المنتجات</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    عرض جميع المنتجات
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:manage_warehouse' %}" class="action-btn">
+                <span class="action-icon">⚙️</span>
+                <strong>إدارة المستودع</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    إضافة/حذف صفوف وأعمدة
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:locations_list' %}" class="action-btn">
+                <span class="action-icon">📍</span>
+                <strong>الأماكن</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    عرض جميع الأماكن
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:audit_logs' %}" class="action-btn">
+                <span class="action-icon">📋</span>
+                <strong>سجلات العمليات</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    تتبع جميع العمليات
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:container_list' %}" class="action-btn" style="border-color: #667eea;">
+                <span class="action-icon">📦</span>
+                <strong>إدارة الحاويات</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    تنظيم المنتجات في حاويات
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:orders_list' %}" class="action-btn">
+                <span class="action-icon">📋</span>
+                <strong>الطلبات المسحوبة</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    عرض جميع الطلبات
+                </p>
+            </a>
+
+            <a href="{% url 'inventory_app:returns_list' %}" class="action-btn">
+                <span class="action-icon">↩️</span>
+                <strong>المرتجعات</strong>
+                <p style="margin-top: 5px; color: var(--text-secondary); font-size: 0.9rem;">
+                    إدارة المرتجعات
+                </p>
+            </a>
+
+        </div>
+    </div>
+
+    <!-- معلومات المستودع -->
+    <div style="background: white; padding: 30px; border-radius: 12px; box-shadow: var(--shadow-lg); margin-top: 30px;">
+        <h2>📋 معلومات المستودع</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+            <div style="padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 5px;">عدد الصفوف</div>
+                <div style="font-size: 1.5rem;">{{ warehouse.rows_count }}</div>
+            </div>
+            <div style="padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 5px;">عدد الأعمدة</div>
+                <div style="font-size: 1.5rem;">{{ warehouse.columns_count }}</div>
+            </div>
+            <div style="padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 5px;">السعة الكلية</div>
+                <div style="font-size: 1.5rem;">{{ total_capacity }}</div>
+            </div>
+            <div style="padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <div style="font-weight: bold; color: var(--primary-color); margin-bottom: 5px;">الأماكن المستخدمة</div>
+                <div style="font-size: 1.5rem;">
+                    {% if warehouse %}
+                        {% with ratio=warehouse.locations.count|floatformat:0 %}
+                            {{ ratio|default:0 }}
+                        {% endwith %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- روابط سريعة -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 12px; color: white; margin-top: 30px; text-align: center;">
+        <h2 style="margin-bottom: 20px;">🚀 ابدأ الآن</h2>
+        <p style="margin-bottom: 20px; font-size: 1.1rem;">استكشف جميع ميزات النظام</p>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <a href="{% url 'inventory_app:home' %}" style="background: white; color: #667eea; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                🔍 البحث
+            </a>
+            <a href="{% url 'inventory_app:products_list' %}" style="background: white; color: #667eea; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                📦 المنتجات
+            </a>
+            <a href="{% url 'inventory_app:manage_warehouse' %}" style="background: white; color: #667eea; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                ⚙️ الإدارة
+            </a>
+        </div>
+    </div>
+{% endblock %}                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة البحث السريع -->
+    <div id="quick-search-overlay">
+        <div id="quick-search-modal">
+            <div id="quick-search-header">
+                <h2>🔍 البحث السريع</h2>
+            </div>
+            
+            <div id="quick-search-input-container">
+                <input 
+                    type="text" 
+                    id="quick-search-input" 
+                    placeholder="ابحث عن منتجات أو مواقع..." 
+                    autocomplete="off"
+                />
+            </div>
+            
+            <div id="quick-search-results"></div>
+            
+            <div id="quick-search-shortcuts">
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">↑</kbd>
+                    <kbd class="shortcut-key">↓</kbd>
+                    للتنقل
+                </div>
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">↵</kbd>
+                    لفتح النتيجة
+                </div>
+                <div class="shortcut-item">
+                    <kbd class="shortcut-key">Esc</kbd>
+                    للإغلاق
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    <script src="{% static 'js/quick_search.js' %}"></script>
+
+    
+    <script>
+        // اختبار الإشعارات عند تحميل الصفحة (يمكن حذفها لاحقاً)
+        document.addEventListener('DOMContentLoaded', function() {
+            // عرض إشعار ترحيبي
+            setTimeout(() => {
+                Notifications.info(
+                    'مرحباً بك في لوحة التحكم',
+                    'استخدم Ctrl+K للبحث السريع',
+                    4000
+                );
+            }, 1000);
+            
+            // عرض إشعار نجاح بعد 3 ثواني
+            setTimeout(() => {
+                Notifications.success(
+                    'النظام يعمل بنجاح',
+                    'جميع الميزات متاحة الآن',
+                    4000
+                );
+            }, 6000);
+        });
+        
+        // ربط الإشعارات بالنماذج والأزرار (مثال)
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const formAction = this.action;
+                
+                // إذا كان النموذج يحتوي على منتج
+                if (formAction.includes('/products/')) {
+                    const productNumber = this.querySelector('[name="product_number"]')?.value;
+                    const productName = this.querySelector('[name="name"]')?.value;
+                    
+                    if (formAction.includes('/add/')) {
+                        setTimeout(() => {
+                            Notifications.success(
+                                'تم إضافة المنتج',
+                                `${productNumber} - ${productName}`,
+                                5000
+                            );
+                        }, 500);
+                    }
+                }
+            });
+        });
+        document.querySelectorAll('.container-badge').forEach(function(el){
+            var color = el.getAttribute('data-color');
+            if (color) {
+                el.style.color = color;
+                el.style.backgroundColor = color + '20';
+                el.style.border = '1px solid ' + color + '40';
+            }
+        });
+    </script>
+</body>
+</html>
+

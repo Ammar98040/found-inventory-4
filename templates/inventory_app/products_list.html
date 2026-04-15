@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قائمة المنتجات</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/quick_search.css' %}">
+    <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+    <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
+    
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .actions-bar {
+            position: relative;
+            display: inline-block;
+        }
+        .fixed-actions {
+            display: inline-flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-inline-end: 8px;
+            vertical-align: middle;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            padding: 8px;
+            min-width: 240px;
+            display: none;
+            z-index: 1000;
+        }
+        .dropdown-menu.open {
+            display: block;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-primary);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .dropdown-item:hover {
+            background: #f8fafc;
+        }
+        @media (max-width: 768px) {
+            .page-header > div {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .fixed-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+            }
+            .list-actions {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            .list-actions .fixed-actions {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .list-actions .fixed-actions .btn {
+                width: 100%;
+            }
+            #actions-toggle {
+                width: 100%;
+            }
+            .dropdown-menu {
+                position: static;
+                width: 100%;
+                min-width: unset;
+            }
+        }
+        /* استخدام أزرار موحدة من product_buttons.css */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            /* overflow: hidden; تم إزالته للسماح بظهور القوائم المنسدلة */
+            table-layout: fixed; /* لضمان احترام العرض المحدد للأعمدة */
+        }
+        th, td {
+            padding: 12px 5px;
+            text-align: center; /* توسيط النص في جميع الخلايا */
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+            word-wrap: break-word; /* السماح بلف النص الطويل */
+        }
+        
+        /* New Styles for Mobile Actions */
+        .desktop-only { display: inline-flex; }
+        .mobile-only { display: none; }
+        
+        @media (max-width: 768px) {
+            .desktop-only { display: none !important; }
+            .mobile-only { display: flex !important; }
+            
+            .mobile-actions-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .action-dropdown {
+                position: relative;
+                display: inline-block;
+            }
+            
+            .action-dropdown-content {
+                display: none;
+                position: absolute;
+                left: 0; 
+                top: 100%;
+                background-color: white;
+                min-width: 220px;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+                z-index: 1000;
+                border-radius: 8px;
+                border: 1px solid #e5e7eb;
+                flex-direction: column;
+                max-height: 60vh; /* تحديد أقصى ارتفاع */
+                overflow-y: auto; /* تمكين التمرير الداخلي */
+                -webkit-overflow-scrolling: touch; /* تحسين التمرير على الهواتف */
+            }
+            
+            /* تحسين شريط التمرير */
+            .action-dropdown-content::-webkit-scrollbar {
+                width: 6px;
+            }
+            .action-dropdown-content::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+            .action-dropdown-content::-webkit-scrollbar-thumb {
+                background: #888;
+                border-radius: 3px;
+            }
+            
+            .action-dropdown-content.show {
+                display: flex;
+            }
+            
+            .action-dropdown-content a, .action-dropdown-content button {
+                padding: 12px 16px;
+                text-decoration: none;
+                display: block;
+                color: #374151;
+                border-bottom: 1px solid #f3f4f6;
+                text-align: right;
+                background: none;
+                border: none;
+                width: 100%;
+                font-size: 0.95rem;
+                cursor: pointer;
+            }
+            
+            /* Kebab Menu for Rows */
+            .kebab-menu-container {
+                position: relative;
+                display: flex;
+                justify-content: center;
+            }
+            
+            .kebab-btn {
+                background: none;
+                border: none;
+                font-size: 1.4rem;
+                cursor: pointer;
+                color: #4b5563;
+                padding: 0 10px;
+            }
+            
+            .kebab-dropdown {
+                display: none;
+                position: fixed; /* تغيير إلى fixed لتجنب القص داخل الجدول */
+                left: 0;
+                bottom: 0;
+                top: auto;
+                width: 100%;
+                background: white;
+                border-top: 1px solid #e5e7eb;
+                border-radius: 16px 16px 0 0;
+                box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+                z-index: 2000;
+                flex-direction: column;
+                padding: 10px 0 20px 0;
+                animation: slideUp 0.3s ease-out;
+            }
+            
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+            
+            .kebab-dropdown.show {
+                display: flex;
+            }
+            
+            .kebab-dropdown a, .kebab-dropdown button {
+                padding: 15px 20px; /* زيادة المساحة للنقر */
+                text-align: center; /* توسيط النص */
+                border-bottom: 1px solid #f3f4f6;
+                color: #374151;
+                text-decoration: none;
+                font-size: 1rem;
+                background: none;
+                border: none;
+                width: 100%;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            /* إضافة زر إغلاق للقائمة */
+            .kebab-close-btn {
+                padding: 10px;
+                text-align: center;
+                color: #ef4444;
+                font-weight: bold;
+                cursor: pointer;
+                border-top: 4px solid #f3f4f6;
+            }
+        }
+        
+        /* تنسيق أعمدة الجدول - توزيع متساوي وأنيق للشاشات الكبيرة */
+        /* 1. عمود التحديد: مساحة ثابتة صغيرة */
+        th:nth-child(1), td:nth-child(1) { width: 40px; } 
+        
+        /* 4. عمود الصورة: مساحة ثابتة */
+        th:nth-child(4), td:nth-child(4) { width: 70px; } 
+
+        /* باقي الأعمدة (7 أعمدة) تتشارك المساحة المتبقية بالتساوي */
+        th:nth-child(2), td:nth-child(2), /* رقم المنتج */
+        th:nth-child(3), td:nth-child(3), /* الاسم */
+        th:nth-child(5), td:nth-child(5), /* السعر */
+        th:nth-child(6), td:nth-child(6), /* الحاوية */
+        th:nth-child(7), td:nth-child(7), /* الكمية */
+        th:nth-child(8), td:nth-child(8), /* الأماكن */
+        th:nth-child(9), td:nth-child(9) /* الإجراءات */
+        {
+            /* استخدام calc لتوزيع المساحة المتبقية بالتساوي */
+            width: calc((100% - 110px) / 7);
+        }
+        th {
+            background: var(--primary-color);
+            color: white;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        .container-badge {
+            background: #f8fafc;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+        .color-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 1px solid #e5e7eb;
+        }
+        
+        /* Responsive table */
+        @media (max-width: 768px) {
+            /* إعادة تعيين عرض الأعمدة للهواتف */
+            th, td { width: auto !important; }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+            
+            .page-header h1 {
+                margin-bottom: 0;
+                font-size: 1.5rem;
+            }
+            
+            .page-header > div {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .search-box {
+                flex-direction: column;
+            }
+            .search-box form {
+                display: grid !important;
+                grid-template-columns: 70% 30%;
+                gap: 8px;
+                width: 100%;
+            }
+            .search-box input[name="search"] {
+                width: 100%;
+            }
+            .search-box button[type="submit"] {
+                width: 100%;
+            }
+            .search-box .btn-secondary {
+                grid-column: 1 / -1;
+                justify-self: start;
+            }
+            
+            table {
+                font-size: 0.85rem;
+            }
+            
+            th, td {
+                padding: 8px 5px;
+                font-size: 0.85rem;
+            }
+            
+            /* إخفاء الأعمدة غير المهمة على الهواتف */
+            /* إبقاء: Checkbox(1), رقم المنتج(2), الصورة(4), الكمية(7), الإجراءات(9) */
+            th:nth-child(3), /* الاسم */
+            td:nth-child(3),
+            th:nth-child(5), /* السعر */
+            td:nth-child(5),
+            th:nth-child(6), /* الحاوية */
+            td:nth-child(6),
+            th:nth-child(8), /* الأماكن */
+            td:nth-child(8) {
+                display: none;
+            }
+            
+            /* تخصيص العرض للأعمدة: عمود التحديد ثابت، والباقي بالتساوي */
+            th:nth-child(1), td:nth-child(1) {
+                width: 30px !important;
+                padding: 8px 2px !important;
+            }
+
+            /* توزيع المساحة بالتساوي على الأعمدة الأربعة المتبقية */
+            th:nth-child(2), td:nth-child(2), /* رقم المنتج */
+            th:nth-child(4), td:nth-child(4), /* الصورة */
+            th:nth-child(7), td:nth-child(7), /* الكمية */
+            th:nth-child(9), td:nth-child(9) { /* الإجراءات */
+                width: 22% !important; /* (100% - 30px) / 4 تقريباً */
+                text-align: center !important;
+                vertical-align: middle !important;
+            }
+            
+            /* تنسيق رقم المنتج داخل العمود */
+            th:nth-child(2), td:nth-child(2) {
+                font-size: 0.8rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            /* تنسيق الكمية */
+            td:nth-child(7) {
+                font-weight: bold;
+                font-size: 0.85rem;
+            }
+            
+            /* تصغير أزرار الإجراءات */
+            .row-actions {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 3px;
+            }
+            
+            .row-actions .btn {
+                font-size: 0.7rem !important;
+                padding: 5px 8px !important;
+                white-space: nowrap;
+                justify-content: center;
+            }
+            
+            .row-actions .btn .icon {
+                font-size: 1rem;
+                margin: 0;
+            }
+            
+            .row-actions .btn span.text {
+                display: none; /* إخفاء النص وعرض الأيقونات فقط */
+            }
+            
+            /* جعل رقم المنتج أكبر وأوضح */
+            td:nth-child(2) strong {
+                font-size: 0.85rem;
+                color: #667eea;
+            }
+            
+            /* تم إخفاء الكمية، لا حاجة لتنسيقها */
+        }
+        
+        @media (max-width: 480px) {
+            .page-header {
+                gap: 8px;
+            }
+            
+            .page-header h1 {
+                font-size: 1.3rem;
+            }
+            
+            .btn {
+                font-size: 0.75rem;
+                padding: 6px 10px;
+            }
+            
+            table {
+                font-size: 0.75rem;
+            }
+            
+            th, td {
+                padding: 6px 3px;
+                font-size: 0.75rem;
+            }
+            
+            /* تصغير الصور على الهواتف الصغيرة */
+            td img {
+                width: 40px !important;
+                height: 40px !important;
+            }
+            
+            /* تصغير أزرار الإجراءات أكثر */
+            .row-actions {
+                grid-template-columns: 1fr 1fr;
+                gap: 2px;
+            }
+            
+            .row-actions .btn {
+                font-size: 0.6rem !important;
+                padding: 4px 6px !important;
+            }
+            
+            .row-actions .btn .icon {
+                font-size: 0.9rem;
+            }
+            
+            /* جعل رقم المنتج أكبر */
+            td:nth-child(2) strong {
+                font-size: 0.9rem;
+            }
+            
+            /* تحسين عرض الكمية */
+            td:nth-child(7) {
+                font-size: 0.85rem;
+                font-weight: 700;
+            }
+            
+            /* Make tables scroll on very small screens */
+            .table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* تحسين أزرار الصفحة العلوية */
+            .page-header .btn {
+                font-size: 0.7rem !important;
+                padding: 6px 10px !important;
+            }
+            
+            /* تحسين حقل البحث */
+            .search-box input {
+                font-size: 0.85rem;
+                padding: 8px;
+            }
+            
+            .search-box .btn {
+                font-size: 0.75rem;
+                padding: 8px 12px;
+            }
+        }
+        
+        /* تنسيق النافذة المنبثقة للصورة (Modal) */
+        .image-modal {
+            display: none; /* مخفي افتراضياً */
+            position: fixed;
+            z-index: 10000; /* فوق كل شيء */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: rgba(0,0,0,0.85); /* خلفية معتمة */
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .image-modal-content {
+            width: 50vw; /* 50% من عرض الشاشة كما طلبت */
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            animation: zoomIn 0.3s ease-out;
+            cursor: default; /* المؤشر العادي عند المرور على الصورة */
+        }
+        
+        /* تأثير التكبير */
+        @keyframes zoomIn {
+            from {transform: scale(0.5); opacity: 0;}
+            to {transform: scale(1); opacity: 1;}
+        }
+        
+        /* تنسيق الصورة المصغرة لتوضيح أنها قابلة للنقر */
+        .product-thumbnail {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .product-thumbnail:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+    <div class="container">
+        <div class="page-header">
+            <h1>📦 قائمة المنتجات</h1>
+        </div>
+
+        <!-- البحث -->
+        <div class="search-box">
+            <form method="GET" style="display: flex; gap: 10px; width: 100%;">
+                <input type="text" name="search" placeholder="ابحث عن منتج..." value="{{ search }}" style="flex: 1;">
+                <button type="submit" class="btn btn-primary">🔍 بحث</button>
+                {% if search %}<a href="/products/" class="btn btn-secondary">🗑️ مسح</a>{% endif %}
+            </form>
+        </div>
+        
+        <!-- إدارة الحاويات -->
+        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: var(--shadow-md); margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: #1f2937; font-size: 1.1rem;">📦 إدارة الحاويات</h3>
+            </div>
+            
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label style="font-weight: 600; color: #4b5563;">تعيين المنتجات المحددة إلى:</label>
+                <select id="container-select" style="padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; min-width: 200px;">
+                    <option value="">-- اختر حاوية --</option>
+                    <option value="null">❌ إزالة من الحاوية</option>
+                    {% for container in containers %}
+                        <option value="{{ container.id }}" data-color="{{ container.color|default:'#667eea' }}">
+                            📦 {{ container.name }} ({{ container.get_products_count }} منتج)
+                        </option>
+                    {% endfor %}
+                </select>
+                <button onclick="assignToContainer()" class="btn btn--sm btn--primary">
+                    ✓ تطبيق
+                </button>
+                
+            </div>
+            
+            <div id="selected-count" style="margin-top: 10px; color: #6b7280; font-size: 0.9rem;">
+                لم يتم تحديد أي منتجات
+            </div>
+        </div>
+
+        <!-- الرسائل -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- إشعار فلترة الحاوية -->
+        {% if selected_container %}
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 2rem;">📦</div>
+                <div>
+                    <div style="font-size: 1.2rem; font-weight: 700;">عرض منتجات الحاوية: {{ selected_container.name }}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">{{ filtered_count }} منتج في هذه الحاوية</div>
+                </div>
+            </div>
+            <a href="{% url 'inventory_app:products_list' %}" class="btn" style="background: white; color: #059669; font-weight: 600;">
+                ✕ إلغاء الفلترة
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- إحصائيات المنتجات -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white;">
+            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 5px;">
+                        📦 {{ total_count }}
+                    </div>
+                    <div style="font-size: 1rem; opacity: 0.9;">
+                        إجمالي المنتجات
+                    </div>
+                </div>
+                {% if search %}
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 5px;">
+                        🔍 {{ filtered_count }}
+                    </div>
+                    <div style="font-size: 1rem; opacity: 0.9;">
+                        نتائج البحث
+                    </div>
+                </div>
+                {% endif %}
+                {% if selected_container and not search %}
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: bold; margin-bottom: 5px;">
+                        📦 {{ filtered_count }}
+                    </div>
+                    <div style="font-size: 1rem; opacity: 0.9;">
+                        في الحاوية
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- قائمة المنتجات -->
+        <div style="background: white; padding: 20px; border-radius: 12px; box-shadow: var(--shadow-lg);">
+            <div class="list-actions" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                
+                <!-- Desktop View -->
+                <div class="desktop-only" style="width: 100%; justify-content: space-between; align-items: center;">
+                    <div class="fixed-actions">
+                         <button id="delete-fixed-btn" class="btn btn--sm btn--danger" onclick="deleteSelectedProducts()" style="display: none;">
+                            <span class="icon">🗑️</span>
+                            <span id="delete-fixed-count">حذف المحدد (0)</span>
+                        </button>
+                    </div>
+                    <div class="fixed-actions" style="gap: 8px;">
+                        <a href="{% url 'inventory_app:export_products_pdf' %}" class="btn btn--sm" target="_blank" style="background: #334155; color: white;">🧾 تصدير PDF</a>
+                        <a href="{% url 'inventory_app:export_products_excel' %}" class="btn btn--sm" style="background: #0ea5e9; color: white;">📥 تصدير Excel</a>
+                        <a href="{% url 'inventory_app:import_products_excel' %}" class="btn btn--sm" style="background: #22c55e; color: white;">📤 استيراد من Excel</a>
+                        <a href="{% url 'inventory_app:container_list' %}" class="btn btn--sm" style="background: #6366f1; color: white;">📋 إدارة الحاويات</a>
+                        {% if selected_container %}
+                            <a href="{% url 'inventory_app:products_list' %}" class="btn btn--sm" style="background: #ef4444; color: white;">✕ إلغاء الفلترة</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Mobile View -->
+                <div class="mobile-only mobile-actions-bar">
+                    <div style="display: flex; gap: 5px;">
+                        <a href="{% url 'inventory_app:product_add' %}" class="btn btn--sm btn--primary">
+                            <span class="icon">➕</span> جديد
+                        </a>
+                        <button id="delete-mobile-btn" class="btn btn--sm btn--danger" onclick="deleteSelectedProducts()" style="display: none;">
+                            <span class="icon">🗑️</span>
+                        </button>
+                    </div>
+                    
+                    <div class="action-dropdown">
+                        <button class="btn btn--sm btn--secondary" onclick="toggleMobileActions(event)">
+                            الإجراءات ▾
+                        </button>
+                        <div id="mobile-actions-dropdown" class="action-dropdown-content">
+                             <a href="{% url 'inventory_app:export_products_pdf' %}" target="_blank">🧾 تصدير PDF</a>
+                            <a href="{% url 'inventory_app:export_products_excel' %}">📥 تصدير Excel</a>
+                            <a href="{% url 'inventory_app:import_products_excel' %}">📤 استيراد من Excel</a>
+                            <a href="{% url 'inventory_app:container_list' %}">📋 إدارة الحاويات</a>
+                            {% if selected_container %}
+                                <a href="{% url 'inventory_app:products_list' %}" style="color: #ef4444;">✕ إلغاء الفلترة</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% if products %}
+                <div class="table-wrapper">
+                    <table>
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                            </th>
+                            <th>رقم المنتج</th>
+                            <th>الاسم</th>
+                            <th>الصورة</th>
+                            <th>السعر</th>
+                            <th>الحاوية</th>
+                            <th>الكمية (حبة)</th>
+
+                            <th>الأماكن</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="product-checkbox" value="{{ product.id }}">
+                                </td>
+                                <td><strong>{{ product.product_number }}</strong></td>
+                                <td>{{ product.name }}</td>
+                                <td>
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-thumbnail" onclick="openImageModal(this.src)" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;">
+                                    {% else %}
+                                        <span style="color: #94a3b8; font-size: 0.85rem;">لا توجد صورة</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if product.price %}
+                                        <strong style="color: #059669;">{{ product.price }} ريال</strong>
+                                    {% else %}
+                                        <span style="color: #94a3b8; font-size: 0.85rem;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if product.container %}
+                                        <span class="container-badge" data-color="{{ product.container.color }}">
+                                            📦 {{ product.container.name }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: #94a3b8; font-size: 0.85rem;">-</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong style="color: #059669;">{{ product.quantity }}</strong></td>
+
+
+                                <td>
+                                    {% if product.location %}
+                                        <span style="background: #dcfce7; color: #065f46; padding: 3px 8px; border-radius: 4px; margin: 2px; display: inline-block; font-size: 0.85rem;">
+                                            {{ product.location.full_location }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: var(--text-secondary);">بدون موقع</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <!-- Desktop Actions -->
+                                    <div class="row-actions desktop-only">
+                                        <a href="/products/{{ product.id }}/" class="btn btn--xs btn--info"><span class="icon">👁️</span><span class="text">عرض</span></a>
+                                        <a href="/products/{{ product.id }}/edit/" class="btn btn--xs btn--primary"><span class="icon">✏️</span><span class="text">تعديل</span></a>
+                                        <a href="/products/{{ product.id }}/assign/" class="btn btn--xs btn--success"><span class="icon">📍</span><span class="text">ربط</span></a>
+                                        <button class="btn btn--xs btn--danger delete-btn" data-product-id="{{ product.id }}" data-product-number="{{ product.product_number }}"><span class="icon">🗑️</span><span class="text">حذف</span></button>
+                                    </div>
+                                    
+                                    <!-- Mobile Kebab Menu -->
+                                    <div class="kebab-menu-container mobile-only">
+                                        <button class="kebab-btn" onclick="toggleRowMenu(event, 'row-menu-{{ product.id }}')">⋮</button>
+                                        <div id="row-menu-{{ product.id }}" class="kebab-dropdown">
+                                            <a href="/products/{{ product.id }}/">👁️ عرض</a>
+                                            <a href="/products/{{ product.id }}/edit/">✏️ تعديل</a>
+                                            <a href="/products/{{ product.id }}/assign/">📍 ربط</a>
+                                            <button class="delete-btn" data-product-id="{{ product.id }}" data-product-number="{{ product.product_number }}">🗑️ حذف</button>
+                                            <div class="kebab-close-btn" onclick="toggleRowMenu(event, 'row-menu-{{ product.id }}')">إلغاء</div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+                
+                
+                
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color); gap: 15px;">
+                    <button onclick="deleteSelectedProducts()" class="btn btn--sm btn--danger" style="display: none;" id="delete-selected-btn-bottom">
+                        <span class="icon">🗑️</span>
+                        <span id="delete-selected-count-bottom">حذف المحدد (0)</span>
+                    </button>
+                </div>
+            {% else %}
+                <p style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    {% if search %}
+                        لم يتم العثور على منتجات للبحث "{{ search }}"
+                    {% else %}
+                        لا توجد منتجات حتى الآن. <a href="/products/add/">أضف منتجاً جديداً</a>
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div id="sidebar-overlay"></div>
+    
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <!-- حقل البحث -->
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link active">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="/audit-logs/" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+            
+            
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الصيانة</div>
+                <a href="/backup-restore/" class="sidebar-link">
+                    <span class="icon">💾</span>
+                    <span class="text">النسخ الاحتياطي</span>
+                </a>
+                <a href="/data-deletion/" class="sidebar-link">
+                    <span class="icon">🗑️</span>
+                    <span class="text">حذف البيانات</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">الإحصائيات الحية</div>
+                <div class="stats-container">
+                    <!-- المنتجات -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📦 المنتجات</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products">-</div>
+                                <div class="stat-label">إجمالي</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-with-locations">-</div>
+                                <div class="stat-label">لها موقع</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">❌</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-products-without-locations">-</div>
+                                <div class="stat-label">بدون موقع</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- الأماكن -->
+                    <div class="stat-category">
+                        <div class="stat-category-title">📍 الأماكن</div>
+                        <div class="stat-item">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-capacity">-</div>
+                                <div class="stat-label">السعة الإجمالية</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">🟢</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-occupied">-</div>
+                                <div class="stat-label">مشغولة</div>
+                            </div>
+                        </div>
+                        <div class="stat-item mini">
+                            <div class="stat-icon">⚪</div>
+                            <div class="stat-info">
+                                <div class="stat-value" id="stats-empty">-</div>
+                                <div class="stat-label">فارغة</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.75rem; color: #94a3b8; text-align: center;">
+                        🟢 Live Mode - تحديث كل 15 ثانية
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/auto_refresh.js' %}"></script>
+    <script src="{% static 'js/quick_search.js' %}"></script>
+    <script src="{% static 'js/notifications.js' %}"></script>
+    
+    <script>
+        // تحديد/إلغاء تحديد الكل
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('select-all');
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+            
+            updateSelectedCount();
+        }
+        
+        
+        // حذف منتج واحد
+        function deleteProduct(productId, productNumber) {
+            if (!confirm(`هل أنت متأكد من حذف المنتج "${productNumber}"؟`)) {
+                return;
+            }
+            
+            fetch(`/products/${productId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('تم حذف المنتج بنجاح');
+                    window.location.reload();
+                } else {
+                    alert('خطأ: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء حذف المنتج');
+            });
+        }
+        
+        // حذف المنتجات المحددة
+        function deleteSelectedProducts() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            
+            if (checkboxes.length === 0) {
+                alert('لم يتم تحديد أي منتج');
+                return;
+            }
+            
+            const productIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            const count = productIds.length;
+            
+            if (!confirm(`هل أنت متأكد من حذف ${count} منتج؟`)) {
+                return;
+            }
+            
+            // إرسال طلب للحذف
+            fetch('/api/delete-products-bulk/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    product_ids: productIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`تم حذف ${count} منتج بنجاح`);
+                    window.location.reload();
+                } else {
+                    alert('خطأ: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء حذف المنتجات');
+            });
+        }
+        
+        // تحديث عدد الدرازن في الكرتون
+        function updateDozensPerCarton(productId, value) {
+            if (!value || value < 1) {
+                alert('يجب أن يكون عدد الدرازن في الكرتون أكبر من 0');
+                return;
+            }
+            
+            fetch(`/api/products/${productId}/update-dozens-per-carton/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    dozens_per_carton: parseInt(value)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // تحديث الصفحة لإظهار الحسابات الجديدة
+                    location.reload();
+                } else {
+                    alert('حدث خطأ: ' + (data.error || 'غير معروف'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تحديث البيانات');
+            });
+        }
+        
+        // تحديث عداد المنتجات المحددة
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            const count = checkboxes.length;
+            const infoDiv = document.getElementById('selected-count');
+            const topBtn = document.getElementById('delete-selected-btn-top');
+            const bottomBtn = document.getElementById('delete-selected-btn-bottom');
+            const topText = document.getElementById('delete-selected-count-top');
+            const bottomText = document.getElementById('delete-selected-count-bottom');
+            const fixedBtn = document.getElementById('delete-fixed-btn');
+            const fixedText = document.getElementById('delete-fixed-count');
+            const mobileBtn = document.getElementById('delete-mobile-btn');
+            
+            if (count === 0) {
+                if (infoDiv) { infoDiv.textContent = 'لم يتم تحديد أي منتجات'; infoDiv.style.color = '#6b7280'; }
+                if (topBtn) topBtn.style.display = 'none';
+                if (bottomBtn) bottomBtn.style.display = 'none';
+                if (fixedBtn) fixedBtn.style.display = 'none';
+                if (mobileBtn) mobileBtn.style.display = 'none';
+            } else {
+                if (infoDiv) { infoDiv.textContent = `تم تحديد ${count} منتج`; infoDiv.style.color = '#059669'; infoDiv.style.fontWeight = '600'; }
+                if (topBtn) topBtn.style.display = 'inline-flex';
+                if (bottomBtn) bottomBtn.style.display = 'inline-flex';
+                if (topText) topText.textContent = `حذف المحدد (${count})`;
+                if (bottomText) bottomText.textContent = `حذف المحدد (${count})`;
+                if (fixedBtn) fixedBtn.style.display = 'inline-flex';
+                if (fixedText) fixedText.textContent = `حذف المحدد (${count})`;
+                if (mobileBtn) mobileBtn.style.display = 'inline-flex';
+            }
+        }
+
+        // Mobile Menu Toggles
+        function toggleMobileActions(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('mobile-actions-dropdown');
+            dropdown.classList.toggle('show');
+            // Close row menus
+            document.querySelectorAll('.kebab-dropdown').forEach(d => d.classList.remove('show'));
+        }
+
+        function toggleRowMenu(event, menuId) {
+            event.stopPropagation();
+            // Close other menus
+            document.querySelectorAll('.kebab-dropdown').forEach(d => {
+                if(d.id !== menuId) d.classList.remove('show');
+            });
+            document.getElementById('mobile-actions-dropdown')?.classList.remove('show');
+            
+            const menu = document.getElementById(menuId);
+            menu.classList.toggle('show');
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', function() {
+            document.getElementById('mobile-actions-dropdown')?.classList.remove('show');
+            document.querySelectorAll('.kebab-dropdown').forEach(d => d.classList.remove('show'));
+        });
+        
+        // مراقبة تغييرات Checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedCount);
+            });
+            
+            const selectAll = document.getElementById('select-all');
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    setTimeout(updateSelectedCount, 50);
+                });
+            }
+
+            const dozensInputs = document.querySelectorAll('.dozens-input');
+            dozensInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const productId = parseInt(this.dataset.productId);
+                    const value = this.value;
+                    updateDozensPerCarton(productId, value);
+                });
+            });
+
+            const deleteButtons = document.querySelectorAll('.delete-btn');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const productId = parseInt(this.dataset.productId);
+                    const productNumber = this.dataset.productNumber;
+                    deleteProduct(productId, productNumber);
+                });
+            });
+
+            const badges = document.querySelectorAll('.container-badge[data-color]');
+            badges.forEach(el => {
+                const color = el.dataset.color;
+                if (color) {
+                    el.style.color = color;
+                    el.style.borderColor = color;
+                }
+            });
+
+            const containerSelect = document.getElementById('container-select');
+            if (containerSelect) {
+                const options = containerSelect.querySelectorAll('option[data-color]');
+                options.forEach(opt => {
+                    const color = opt.dataset.color;
+                    if (color) opt.style.color = color;
+                });
+            }
+
+            const actionsToggle = document.getElementById('actions-toggle');
+            const actionsMenu = document.getElementById('actions-menu');
+            if (actionsToggle && actionsMenu) {
+                actionsToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    actionsMenu.classList.toggle('open');
+                });
+                document.addEventListener('click', function() {
+                    actionsMenu.classList.remove('open');
+                });
+            }
+        });
+        
+        // تعيين المنتجات إلى حاوية
+        function assignToContainer() {
+            const checkboxes = document.querySelectorAll('.product-checkbox:checked');
+            const productIds = Array.from(checkboxes).map(cb => cb.value);
+            const containerId = document.getElementById('container-select').value;
+            
+            if (productIds.length === 0) {
+                alert('⚠️ يرجى تحديد منتج واحد على الأقل');
+                return;
+            }
+            
+            if (!containerId) {
+                alert('⚠️ يرجى اختيار حاوية');
+                return;
+            }
+            
+            fetch('/api/assign-products-to-container/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    product_ids: productIds,
+                    container_id: containerId === 'null' ? null : containerId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ خطأ: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تعيين المنتجات');
+            });
+        }
+        
+        // عرض نافذة إضافة حاوية
+        function showAddContainerModal() {
+            const name = prompt('📦 اسم الحاوية الجديدة:');
+            if (!name || name.trim() === '') {
+                return;
+            }
+            
+            const description = prompt('📝 وصف الحاوية (اختياري):');
+            const color = prompt('🎨 لون الحاوية (مثال: #667eea):', '#667eea');
+            
+            fetch('/api/container/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: new URLSearchParams({
+                    name: name.trim(),
+                    description: description || '',
+                    color: color || '#667eea'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ خطأ: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء إضافة الحاوية');
+            });
+        }
+    </script>
+    <!-- نافذة عرض الصورة المكبرة -->
+    <div id="imageModal" class="image-modal" onclick="closeImageModal()">
+        <img class="image-modal-content" id="modalImage" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+        function openImageModal(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'flex';
+            modalImg.src = src;
+            document.body.style.overflow = 'hidden'; // منع التمرير في الخلفية
+        }
+        
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto'; // إعادة التمرير
+        }
+        
+        // إغلاق النافذة عند الضغط على زر ESC
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeImageModal();
+            }
+        });
+    </script>
+</body>
+
+</html>

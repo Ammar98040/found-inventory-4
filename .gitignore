@@ -1,0 +1,60 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Django
+*.log
+*.pot
+*.pyc
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/*
+!media/.gitkeep
+!media/products/**
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment Variables
+.env
+.env.local
+*.env
+.env.deploy
+.env.deploy.*
+!.env.deploy.example
+
+# Database Backups (large files)
+*.sql
+full_db_backup.sql
+*.dump
+*.sqlite3
+*.backup
+
+# Files to NOT upload
+LOGIN_INFO.txt
+روا_ط_النظام.txt
+start.bat
+start.sh
+import_sql_to_vps.sh
+import_to_vps.sh
+cookie.txt
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini

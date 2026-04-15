@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة مرتجع جديد - نظام إدارة المستودع</title>
+    {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/quick_search.css' %}">
+    
+    <style>
+        .return-form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-right: 4px solid #10b981;
+        }
+        
+        .form-section-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #10b981;
+        }
+        
+        .products-input {
+            font-family: monospace;
+            min-height: 150px;
+            resize: vertical;
+        }
+        
+        .input-hint {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        
+        .selected-products {
+            margin-top: 20px;
+            padding: 15px;
+            background: #dcfce7;
+            border-radius: 8px;
+            border: 1px solid #10b981;
+        }
+        
+        .selected-products h4 {
+            margin: 0 0 10px 0;
+            color: #065f46;
+        }
+        
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .product-info {
+            flex: 1;
+        }
+        
+        .product-number {
+            font-weight: bold;
+            color: #1e293b;
+            font-family: monospace;
+        }
+        
+        .product-quantity {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        .remove-product {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .remove-product:hover {
+            background: #dc2626;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 20px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+        
+        .submit-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header" style="margin-bottom: 30px;">
+            <h1>🔄 إضافة مرتجع جديد</h1>
+            <div>
+                <a href="{% url 'inventory_app:returns_list' %}" class="btn btn-secondary">
+                    <span class="btn-icon">📋</span>
+                    قائمة المرتجعات
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    <span class="btn-icon">🏠</span>
+                    الرئيسية
+                </a>
+            </div>
+        </div>
+        
+        <div class="return-form-container">
+            <form id="return-form">
+                {% csrf_token %}
+                
+                <!-- معلومات المرتجع -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        📝 معلومات المرتجع
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="returned-by">اسم المرسل *</label>
+                        <input type="text" id="returned-by" name="returned_by" required 
+                               placeholder="أدخل اسم المرسل">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="return-reason">سبب الإرجاع</label>
+                        <input type="text" id="return-reason" name="return_reason" 
+                               placeholder="مثال: تالف، غير مناسب، خطأ في الطلب">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notes">ملاحظات إضافية</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="أي ملاحظات إضافية..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- المنتجات المرتجعة -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        📦 المنتجات المرتجعة
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="products-input">أرقام المنتجات والكميات *</label>
+                        <textarea id="products-input" class="products-input" 
+                                  placeholder="أدخل أرقام المنتجات والكميات المرتجعة، سطر لكل منتج:&#10;BAG-001:5&#10;BAG-002:3&#10;BAG-003:10&#10;&#10;أو بدون كمية لإرجاع كمية واحدة:&#10;BAG-001"></textarea>
+                        <div class="input-hint">
+                            💡 يمكنك إدخال المنتجات بصيغة: <code>رقم_المنتج:الكمية</code> أو <code>رقم_المنتج</code> فقط (سيتم إرجاع كمية واحدة)
+                        </div>
+                    </div>
+                    
+                    <div id="selected-products-container" style="display: none;">
+                        <div class="selected-products">
+                            <h4>✅ المنتجات المحددة:</h4>
+                            <div id="selected-products-list"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn" id="submit-btn">
+                    ✅ إضافة المرتجع وإرجاع الكميات
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    
+    <!-- Sidebar -->
+    <button id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    <div id="sidebar-overlay"></div>
+    <div id="main-sidebar">
+        <div class="sidebar-header">
+            <h2>🧭 القوائم</h2>
+            <button class="sidebar-close" onclick="toggleSidebar()">×</button>
+        </div>
+        
+        <div class="sidebar-search">
+            <input type="text" id="sidebar-search-input" placeholder="🔍 ابحث في القوائم..." autocomplete="off">
+            <div id="sidebar-search-results"></div>
+        </div>
+        
+        <div class="sidebar-content" id="sidebar-main-content">
+            <div class="sidebar-section">
+                <div class="sidebar-title">الرئيسية</div>
+                <a href="/" class="sidebar-link">
+                    <span class="icon">🔍</span>
+                    <span class="text">البحث عن المنتجات</span>
+                </a>
+                <a href="/dashboard/" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    <span class="text">لوحة التحكم</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">إدارة المنتجات</div>
+                <a href="/products/" class="sidebar-link">
+                    <span class="icon">📦</span>
+                    <span class="text">قائمة المنتجات</span>
+                </a>
+                <a href="/products/add/" class="sidebar-link">
+                    <span class="icon">➕</span>
+                    <span class="text">إضافة منتج جديد</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">المستودع</div>
+                <a href="/manage/" class="sidebar-link">
+                    <span class="icon">⚙️</span>
+                    <span class="text">إدارة المستودع</span>
+                </a>
+                <a href="/locations/" class="sidebar-link">
+                    <span class="icon">📍</span>
+                    <span class="text">الأماكن</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-section">
+                <div class="sidebar-title">السجلات</div>
+                <a href="{% url 'inventory_app:orders_list' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجل الطلبات</span>
+                </a>
+                <a href="{% url 'inventory_app:returns_list' %}" class="sidebar-link active">
+                    <span class="icon">🔄</span>
+                    <span class="text">المرتجعات</span>
+                </a>
+                <a href="{% url 'inventory_app:audit_logs' %}" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    <span class="text">سجلات العمليات</span>
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script>
+        const returnForm = document.getElementById('return-form');
+        const productsInput = document.getElementById('products-input');
+        const selectedProductsContainer = document.getElementById('selected-products-container');
+        const selectedProductsList = document.getElementById('selected-products-list');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        let selectedProducts = [];
+        
+        // معالجة الإدخال عند تغيير النص
+        productsInput.addEventListener('input', function() {
+            parseProductsInput();
+        });
+        
+        function parseProductsInput() {
+            const input = productsInput.value.trim();
+            if (!input) {
+                selectedProducts = [];
+                updateSelectedProductsDisplay();
+                return;
+            }
+            
+            const lines = input.split('\n').filter(line => line.trim());
+            const products = [];
+            const seenNumbers = new Set();
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+                
+                let productNumber, quantity;
+                
+                if (trimmed.includes(':')) {
+                    const parts = trimmed.split(':');
+                    productNumber = parts[0].trim();
+                    quantity = parseInt(parts[1].trim()) || 1;
+                } else {
+                    productNumber = trimmed;
+                    quantity = 1; // كمية افتراضية
+                }
+                
+                if (productNumber && !seenNumbers.has(productNumber)) {
+                    seenNumbers.add(productNumber);
+                    products.push({
+                        number: productNumber,
+                        quantity: quantity
+                    });
+                }
+            }
+            
+            selectedProducts = products;
+            updateSelectedProductsDisplay();
+        }
+        
+        function updateSelectedProductsDisplay() {
+            if (selectedProducts.length === 0) {
+                selectedProductsContainer.style.display = 'none';
+                submitBtn.disabled = true;
+                return;
+            }
+            
+            selectedProductsContainer.style.display = 'block';
+            selectedProductsList.innerHTML = '';
+            
+            let totalQuantity = 0;
+            
+            selectedProducts.forEach((product, index) => {
+                totalQuantity += product.quantity;
+                
+                const productItem = document.createElement('div');
+                productItem.className = 'product-item';
+                productItem.innerHTML = `
+                    <div class="product-info">
+                        <span class="product-number">${product.number}</span>
+                        <span class="product-quantity">× ${product.quantity}</span>
+                    </div>
+                `;
+                selectedProductsList.appendChild(productItem);
+            });
+            
+            const totalItem = document.createElement('div');
+            totalItem.style.cssText = 'margin-top: 10px; padding-top: 10px; border-top: 2px solid #10b981; font-weight: bold; color: #065f46;';
+            totalItem.innerHTML = `إجمالي الكميات: ${totalQuantity}`;
+            selectedProductsList.appendChild(totalItem);
+            
+            submitBtn.disabled = false;
+        }
+        
+        // معالجة الإرسال
+        returnForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (selectedProducts.length === 0) {
+                alert('⚠️ يرجى إدخال منتجات للإرجاع');
+                return;
+            }
+            
+            const returnedBy = document.getElementById('returned-by').value.trim();
+            if (!returnedBy) {
+                alert('⚠️ يرجى إدخال اسم المرسل');
+                return;
+            }
+            
+            if (!confirm(`هل تريد إضافة المرتجع وإرجاع الكميات للمنتجات؟\n\nعدد المنتجات: ${selectedProducts.length}\nاسم المرسل: ${returnedBy}`)) {
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ جاري المعالجة...';
+            
+            try {
+                const formData = {
+                    products: selectedProducts,
+                    returned_by: returnedBy,
+                    return_reason: document.getElementById('return-reason').value.trim(),
+                    notes: document.getElementById('notes').value.trim()
+                };
+                
+                const response = await fetch('{% url "inventory_app:process_return" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.message}\n\nرقم المرتجع: ${data.return_number}`);
+                    window.location.href = '{% url "inventory_app:returns_list" %}';
+                } else {
+                    alert(`❌ خطأ: ${data.error}`);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '✅ إضافة المرتجع وإرجاع الكميات';
+                }
+            } catch (error) {
+                alert(`❌ حدث خطأ: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = '✅ إضافة المرتجع وإرجاع الكميات';
+            }
+        });
+        
+        // تفعيل الزر عند التحميل
+        submitBtn.disabled = true;
+    </script>
+</body>
+</html>
+

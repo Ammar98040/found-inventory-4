@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>فاتورة #{{ invoice.invoice_number }}</title>
+{% load static %}
+<link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { background: #f0f4f8; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; margin: 0; padding: 0; direction: rtl; }
+
+.control-bar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 14px 24px; display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 4px 15px rgba(102,126,234,.4);
+}
+.control-bar h2 { color: #fff; margin: 0; font-size: 1.2rem; }
+.ctrl-btn {
+    padding: 9px 18px; border: none; border-radius: 10px; font-size: .95rem;
+    font-weight: 700; cursor: pointer; transition: all .25s;
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.btn-back    { background: rgba(255,255,255,.18); color: #fff; }
+.btn-print   { background: #fff; color: #764ba2; }
+.btn-list    { background: rgba(255,255,255,.12); color: #fff; border: 2px solid rgba(255,255,255,.4); }
+.ctrl-btn:hover { transform: translateY(-2px); opacity: .92; }
+
+.invoice-wrapper { max-width: 900px; margin: 28px auto; padding: 0 16px 60px; }
+
+.invoice-paper {
+    background: #fff; border: 2px solid #1a3a6b; border-radius: 4px;
+    padding: 0; box-shadow: 0 8px 32px rgba(0,0,0,.12);
+}
+
+.inv-header {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; padding: 14px 18px 10px;
+    border-bottom: 3px double #1a3a6b; gap: 10px;
+}
+.inv-company-ar { text-align: right; }
+.inv-company-ar .name-ar { font-size: 1.6rem; font-weight: 900; color: #1a3a6b; }
+.inv-company-ar .details-ar { font-size: .8rem; color: #333; line-height: 1.7; margin-top: 4px; }
+.inv-logo-placeholder { font-size: 64px; line-height: 1; text-align: center; }
+.inv-company-en { text-align: left; }
+.inv-company-en .name-en { font-size: 1rem; font-weight: 700; color: #1a3a6b; }
+.inv-company-en .details-en { font-size: .75rem; color: #555; line-height: 1.7; margin-top: 4px; }
+
+.inv-meta {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; padding: 8px 18px;
+    background: #f8faff; border-bottom: 1px solid #c5d5f0; gap: 8px;
+}
+.inv-title { text-align: center; font-size: 1.25rem; font-weight: 900; color: #1a3a6b; letter-spacing: 1px; }
+.inv-num-badge {
+    font-size: 1.6rem; font-weight: 900; color: #c0392b;
+    background: #fff3f0; border: 2px solid #c0392b;
+    padding: 2px 16px; border-radius: 6px;
+}
+.inv-dates { text-align: right; font-size: .85rem; color: #333; }
+.inv-dates .date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.inv-dates label { font-weight: 700; min-width: 70px; color: #1a3a6b; white-space: nowrap; }
+.inv-dates span { font-size: .85rem; color: #222; }
+
+.inv-customer {
+    padding: 8px 18px 6px; border-bottom: 1px solid #c5d5f0;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px;
+}
+.cust-row { display: flex; align-items: center; gap: 6px; }
+.cust-row label { font-weight: 700; color: #1a3a6b; font-size: .88rem; min-width: 110px; white-space: nowrap; }
+.cust-row span { font-size: .88rem; color: #222; }
+.cust-full { grid-column: 1 / -1; }
+
+.inv-table-wrap { overflow-x: auto; }
+.inv-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.inv-table th {
+    background: #1a3a6b; color: #fff; padding: 8px 6px;
+    text-align: center; font-weight: 700; border: 1px solid #1a3a6b; font-size: .85rem;
+}
+.inv-table td { border: 1px solid #c5d5f0; padding: 6px 8px; text-align: center; vertical-align: middle; }
+.inv-table tbody tr:nth-child(even) { background: #f7f9ff; }
+
+.inv-summary {
+    padding: 12px 18px; border-top: 2px solid #1a3a6b;
+    display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start;
+}
+.summary-table { width: 100%; }
+.summary-table td { padding: 5px 8px; font-size: .9rem; }
+.summary-table .lbl { color: #555; text-align: right; }
+.summary-table .val { text-align: left; font-weight: 700; color: #222; min-width: 90px; }
+.summary-table .total-final .lbl { color: #1a3a6b; font-weight: 800; font-size: 1rem; }
+.summary-table .total-final .val { color: #c0392b; font-size: 1.1rem; font-weight: 900; }
+.summary-table tr.separator td { border-top: 1px solid #dde; padding-top: 8px; }
+
+.inv-total-text {
+    padding: 8px 18px 10px; border-top: 1px solid #c5d5f0;
+    display: flex; align-items: center; gap: 10px; font-size: .92rem;
+}
+.inv-total-text .lbl { font-weight: 800; color: #1a3a6b; white-space: nowrap; }
+.inv-total-text .val { font-weight: 700; color: #333; }
+
+.inv-footer {
+    padding: 10px 18px 16px; border-top: 1px solid #c5d5f0;
+    display: flex; justify-content: space-between; align-items: flex-end;
+}
+.sig-box { text-align: center; min-width: 160px; }
+.sig-line { border-top: 1px solid #333; width: 140px; margin: 30px auto 4px; }
+.sig-label { font-size: .85rem; color: #555; font-weight: 700; }
+
+@media print {
+    body { background: #fff !important; }
+    .control-bar, .creator-info { display: none !important; }
+    .invoice-wrapper { margin: 0; padding: 0; max-width: 100%; }
+    .inv-summary { grid-template-columns: 1fr 340px; }
+    .invoice-paper { box-shadow: none !important; border: 2px solid #1a3a6b !important; }
+    thead { display: table-header-group; }
+    .inv-table tbody tr { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+
+<div class="control-bar">
+    <h2>🧾 فاتورة #{{ invoice.invoice_number }}</h2>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="{% url 'inventory_app:orders_list' %}?tab=invoices" class="ctrl-btn btn-list">📋 سجل الفواتير</a>
+        <a href="/" class="ctrl-btn btn-back">← الرئيسية</a>
+        <button class="ctrl-btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+    </div>
+</div>
+
+<div class="invoice-wrapper">
+<div class="invoice-paper">
+
+    <!-- رأس الفاتورة -->
+    <div class="inv-header">
+        <div class="inv-company-ar">
+            <div class="name-ar">قلب العرب للشنط</div>
+            <div class="details-ar">
+                جدة · البلد · الخاسكية · سوق الخاسكية الجديد<br>
+                ت: ٦٤٨٧٤٧٦ · جوال: ٠٥٠٧٥٠٠٩٦١<br>
+                س.ت. ٤٠٣٠٠١٣٩٦٤ · ر.ض. ٣٠٠٧٣٥٧٦١٤٠٠٠٠٣
+            </div>
+        </div>
+        <div class="inv-logo-placeholder">🛍️</div>
+        <div class="inv-company-en">
+            <div class="name-en">Heart of Arabs Bags</div>
+            <div class="details-en">
+                Jeddah · Al-Balad<br>
+                Al-Khaskiyah New Market<br>
+                VAT Reg. 300735761400003
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط رقم الفاتورة والتاريخ -->
+    <div class="inv-meta">
+        <div></div>
+        <div style="text-align:center;">
+            <div class="inv-title">فاتورة عرض الأسعار</div>
+            <div class="inv-num-badge">#{{ invoice.invoice_number }}</div>
+        </div>
+        <div class="inv-dates" style="text-align:left;">
+            <div class="date-row">
+                <label>التاريخ:</label>
+                <span>{{ invoice.invoice_date }}</span>
+            </div>
+            {% if invoice.hijri_date %}
+            <div class="date-row">
+                <label>الموافق:</label>
+                <span>{{ invoice.hijri_date }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- بيانات العميل -->
+    <div class="inv-customer">
+        <div class="cust-row">
+            <label>المطلوب من المكرم:</label>
+            <span>{{ invoice.customer_name|default:"—" }}</span>
+        </div>
+        <div class="cust-row">
+            <label>التليفون:</label>
+            <span>{{ invoice.customer_phone|default:"—" }}</span>
+        </div>
+        <div class="cust-row cust-full">
+            <label>العنوان:</label>
+            <span>{{ invoice.customer_address|default:"—" }}</span>
+        </div>
+        <div class="cust-row">
+            <label>المخرج:</label>
+            <span>{{ invoice.issuer|default:"—" }}</span>
+        </div>
+    </div>
+
+    <!-- جدول الأصناف -->
+    <div class="inv-table-wrap">
+        <table class="inv-table">
+            <thead>
+                <tr>
+                    <th style="width:32px;">#</th>
+                    <th style="width:100px;">رقم الصنف</th>
+                    <th>الصنف</th>
+                    <th style="width:70px;">السعر</th>
+                    <th style="width:65px;">العدد</th>
+                    <th style="width:90px;">القيمة الإجمالية</th>
+                    <th style="width:120px;">ملاحظات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.products_data %}
+                <tr>
+                    <td style="color:#888; font-size:.8rem;">{{ forloop.counter }}</td>
+                    <td style="font-weight:700; color:#1a3a6b; font-family:monospace;">{{ item.number }}</td>
+                    <td style="text-align:right; padding-right:10px;">{{ item.name }}</td>
+                    <td>{{ item.price|floatformat:2 }}</td>
+                    <td style="font-weight:700; color:#0a6640;">{{ item.qty }}</td>
+                    <td style="color:#c0392b; font-weight:700;">{{ item.total|floatformat:2 }}</td>
+                    <td style="color:#666;">{{ item.notes|default:"" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="text-align:center; color:#999; padding:20px;">لا توجد أصناف</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ملخص الحسابات -->
+    <div class="inv-summary">
+        <div></div>
+        <table class="summary-table">
+            <tr>
+                <td class="lbl">الإجمالي قبل الضريبة</td>
+                <td class="val">{{ invoice.subtotal|floatformat:2 }}</td>
+                <td style="color:#777; font-size:.8rem; padding-right:4px;">ريال</td>
+            </tr>
+            {% if invoice.tax_applied %}
+            <tr>
+                <td class="lbl">ضريبة القيمة المضافة 15%</td>
+                <td class="val">{{ invoice.tax_amount|floatformat:2 }}</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            <tr>
+                <td class="lbl">المجموع بعد الضريبة</td>
+                <td class="val" id="afterTaxVal"></td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td class="lbl">الخصم</td>
+                <td class="val">{{ invoice.discount|floatformat:2 }}</td>
+                <td style="color:#777; font-size:.8rem;">ريال</td>
+            </tr>
+            <tr class="separator total-final">
+                <td class="lbl">الإجمالي النهائي</td>
+                <td class="val">{{ invoice.total|floatformat:2 }}</td>
+                <td style="color:#c0392b; font-size:.85rem; font-weight:800;">ريال</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- النص العربي للمبلغ -->
+    <div class="inv-total-text">
+        <span class="lbl">فقط وقدره:</span>
+        <span class="val">{{ invoice.total_text }}</span>
+    </div>
+
+    <!-- التوقيع -->
+    <div class="inv-footer">
+        <div class="creator-info" style="font-size:.8rem; color:#888; text-align:center;">
+            أُنشئت بواسطة: {{ invoice.user }}<br>
+            {{ invoice.created_at|date:"Y-m-d H:i" }}
+        </div>
+        <div class="sig-box">
+            <div class="sig-line"></div>
+            <div class="sig-label">التوقيع</div>
+        </div>
+    </div>
+
+</div>
+</div>
+<script>
+(function() {
+    const el = document.getElementById('afterTaxVal');
+    if (el) {
+        const sub = parseFloat('{{ invoice.subtotal }}') || 0;
+        const tax = parseFloat('{{ invoice.tax_amount }}') || 0;
+        el.textContent = (sub + tax).toFixed(2);
+    }
+})();
+
+</script>
+</body>
+</html>
