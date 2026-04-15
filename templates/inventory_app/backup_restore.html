@@ -11,6 +11,64 @@
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'css/product_buttons.css' %}">
     <style>
+        /* ===== شريط التحميل ===== */
+        #import-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        #import-overlay.active { display: flex; }
+        .import-progress-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 40px;
+            min-width: 340px;
+            max-width: 90vw;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .import-progress-box .spinner {
+            font-size: 3rem;
+            animation: spin 1.2s linear infinite;
+            display: block;
+            margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .import-progress-box h3 {
+            margin: 0 0 6px;
+            font-size: 1.15rem;
+            color: #1e293b;
+        }
+        .import-progress-box p {
+            margin: 0 0 20px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .progress-bar-wrap {
+            background: #e2e8f0;
+            border-radius: 999px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.4s ease;
+            animation: progressPulse 1.8s ease-in-out infinite;
+        }
+        @keyframes progressPulse {
+            0%   { width: 15%; }
+            50%  { width: 85%; }
+            100% { width: 15%; }
+        }
+        /* ===== نهاية شريط التحميل ===== */
+
         .backup-section {
             background: white;
             padding: 30px;
@@ -209,6 +267,18 @@
                 <li>احتفظ بملفات النسخ الاحتياطي في مكان آمن</li>
                 <li>تأكد من صحة ملف النسخ الاحتياطي قبل الاستيراد</li>
             </ul>
+        </div>
+    </div>
+
+    <!-- شريط التحميل أثناء الاستيراد -->
+    <div id="import-overlay">
+        <div class="import-progress-box">
+            <span class="spinner">⏳</span>
+            <h3>جاري الاستيراد...</h3>
+            <p id="import-progress-label">يتم معالجة الملف ورفع البيانات، يرجى الانتظار</p>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
         </div>
     </div>
 
@@ -649,11 +719,25 @@
             }
         }
 
+        function showImportOverlay(label) {
+            document.getElementById('import-progress-label').textContent = label || 'يتم معالجة الملف ورفع البيانات، يرجى الانتظار';
+            document.getElementById('import-overlay').classList.add('active');
+        }
+        function hideImportOverlay() {
+            document.getElementById('import-overlay').classList.remove('active');
+        }
+
         function importBackup() {
             if (!selectedFile) {
                 alert('يرجى اختيار ملف النسخ الاحتياطي');
                 return;
             }
+
+            const isZip = selectedFile.name.toLowerCase().endsWith('.zip');
+            showImportOverlay(isZip
+                ? 'يتم استخراج الملف والصور، قد يستغرق ذلك دقيقة...'
+                : 'يتم تحليل البيانات واستيرادها، يرجى الانتظار...'
+            );
             
             const clearExisting = document.getElementById('clear-existing').checked;
             
@@ -692,6 +776,7 @@
             })
             .then(async (response) => {
                 if (response.status === 401) {
+                    hideImportOverlay();
                     const d = await response.json().catch(() => ({}));
                     window.location.href = d.redirect || '/login/?next=' + encodeURIComponent(window.location.pathname);
                     return;
@@ -708,6 +793,7 @@
                 return response.json();
             })
             .then(data => {
+                hideImportOverlay();
                 if (!data) return;
                 if (data.success) {
                     const imported = data.imported ? JSON.stringify(data.imported) : '';
@@ -719,6 +805,7 @@
                 }
             })
             .catch(error => {
+                hideImportOverlay();
                 alert('❌ حدث خطأ: ' + error.message);
             });
         }

@@ -909,19 +909,15 @@ def products_list(request):
     
     # احسب العدد بعد الفلترة (إذا كان هناك بحث أو حاوية)
     filtered_count = products.count() if (search or container_id) else total_count
-    
-    # عرض جميع المنتجات بدون ترقيم صفحات بشكل افتراضي
-    show_all = True
-    page_obj = products
-    page_obj.has_other_pages = False
-    page_obj.number = 1
-    page_obj.paginator = type('obj', (object,), {'num_pages': 1})()
-    page_obj.start_index = lambda: 1
-    page_obj.end_index = lambda: products.count()
-    
+
+    # ترقيم الصفحات — 15 منتج في كل صفحة
+    paginator = Paginator(products, 15)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
     # جلب جميع الحاويات للقائمة المنسدلة
     containers = Container.objects.all().order_by('name')
-    
+
     return render(request, 'inventory_app/products_list.html', {
         'products': page_obj,
         'page_obj': page_obj,
@@ -929,8 +925,7 @@ def products_list(request):
         'total_count': total_count,
         'containers': containers,
         'filtered_count': filtered_count,
-        'show_all': show_all,
-        'selected_container': selected_container
+        'selected_container': selected_container,
     })
 
 

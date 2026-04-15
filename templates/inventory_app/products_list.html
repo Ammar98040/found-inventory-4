@@ -800,11 +800,43 @@
                 
                 
                 
-                <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color); gap: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color); gap: 15px; flex-wrap: wrap;">
                     <button onclick="deleteSelectedProducts()" class="btn btn--sm btn--danger" style="display: none;" id="delete-selected-btn-bottom">
                         <span class="icon">🗑️</span>
                         <span id="delete-selected-count-bottom">حذف المحدد (0)</span>
                     </button>
+
+                    {% if page_obj.paginator.num_pages > 1 %}
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span style="color:#64748b; font-size:0.9rem; margin-left:8px;">
+                            صفحة {{ page_obj.number }} من {{ page_obj.paginator.num_pages }}
+                            &nbsp;·&nbsp; {{ page_obj.paginator.count }} منتج
+                        </span>
+
+                        {% if page_obj.has_previous %}
+                            <a href="?{% if search %}search={{ search }}&{% endif %}{% if request.GET.container %}container={{ request.GET.container }}&{% endif %}page=1"
+                               style="padding:6px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; color:#334155; text-decoration:none; font-size:0.9rem;">«</a>
+                            <a href="?{% if search %}search={{ search }}&{% endif %}{% if request.GET.container %}container={{ request.GET.container }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                               style="padding:6px 12px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; color:#334155; text-decoration:none; font-size:0.9rem;">‹ السابق</a>
+                        {% endif %}
+
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if num == page_obj.number %}
+                                <span style="padding:6px 12px; background:#667eea; color:white; border-radius:6px; font-size:0.9rem; font-weight:700;">{{ num }}</span>
+                            {% elif num >= page_obj.number|add:'-3' and num <= page_obj.number|add:'3' %}
+                                <a href="?{% if search %}search={{ search }}&{% endif %}{% if request.GET.container %}container={{ request.GET.container }}&{% endif %}page={{ num }}"
+                                   style="padding:6px 12px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; color:#334155; text-decoration:none; font-size:0.9rem;">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?{% if search %}search={{ search }}&{% endif %}{% if request.GET.container %}container={{ request.GET.container }}&{% endif %}page={{ page_obj.next_page_number }}"
+                               style="padding:6px 12px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; color:#334155; text-decoration:none; font-size:0.9rem;">التالي ›</a>
+                            <a href="?{% if search %}search={{ search }}&{% endif %}{% if request.GET.container %}container={{ request.GET.container }}&{% endif %}page={{ page_obj.paginator.num_pages }}"
+                               style="padding:6px 10px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; color:#334155; text-decoration:none; font-size:0.9rem;">»</a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             {% else %}
                 <p style="text-align: center; padding: 40px; color: var(--text-secondary);">
